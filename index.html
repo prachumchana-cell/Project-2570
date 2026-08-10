@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- ✅ เพิ่มสำหรับ PWA -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    
+    <title>ระบบจัดการโครงการก่อสร้าง 2570</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    
+    <style>
+        /* ✅ หน้าจอเริ่มต้น (ถ้าต้องการ) */
+        #splashScreen {
+            position: fixed;
+            inset: 0;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.4s;
+        }
+        #mainContent { display: none; }
+        /* ปรับแต่งเพิ่มเติม */
+        .person-row { transition: all 0.2s; }
+        .status-badge { font-size: 0.75rem; padding: 0.25rem 0.75rem; border-radius: 999px; }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+    <!-- หน้าจอเริ่มต้น -->
+    <div id="splashScreen">
+        <div class="text-center">
+            <i class="fa fa-building text-blue-600 text-5xl mb-3"></i>
+            <h2 class="text-xl font-bold text-gray-700">ระบบจัดการโครงการ</h2>
+        </div>
+    </div>
+
+    <!-- เนื้อหาหลัก -->
+    <div id="mainContent" class="max-w-6xl mx-auto p-3 md:p-5">
+        <h1 class="text-xl md:text-2xl font-bold text-center text-blue-700 mb-5">📋 ระบบจัดการข้อมูลโครงการก่อสร้าง</h1>
+
+        <div class="flex flex-wrap justify-between items-center mb-3 gap-2">
+            <button onclick="openForm()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow text-sm">
+                <i class="fa fa-plus mr-1"></i> เพิ่มโครงการใหม่
+            </button>
+            <div class="flex gap-2">
+                <button onclick="exportData()" class="bg-green-600 text-white px-3 py-1.5 rounded text-xs">
+                    <i class="fa fa-download mr-1"></i>สำรองข้อมูล
+                </button>
+                <button onclick="importDataPrompt()" class="bg-gray-600 text-white px-3 py-1.5 rounded text-xs">
+                    <i class="fa fa-upload mr-1"></i>นำเข้า
+                </button>
+            </div>
+        </div>
+
+        <!-- ฟอร์มเพิ่ม/แก้ไข -->
+        <div id="formContainer" class="hidden bg-white p-4 rounded-lg shadow mb-5 border">
+            <h3 class="text-lg font-semibold mb-3 text-gray-800" id="formTitle">➕ เพิ่มโครงการใหม่</h3>
+            <input type="hidden" id="editId"> <!-- สำหรับแก้ไข -->
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อโครงการ *</label>
+                    <input type="text" id="projName" class="w-full border rounded px-3 py-2 text-base" placeholder="ระบุชื่อโครงการ" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">แหล่งงบประมาณ *</label>
+                    <input type="text" id="projSource" class="w-full border rounded px-3 py-2 text-base" placeholder="เช่น งบประมาณแผ่นดิน/จังหวัด" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">สถานะโครงการ</label>
+                    <select id="projStatus" class="w-full border rounded px-3 py-2 text-base">
+                        <option value="รอดำเนินการ">รอดำเนินการ</option>
+                        <option value="กำลังดำเนินการ">กำลังดำเนินการ</option>
+                        <option value="เสร็จสิ้น">เสร็จสิ้น</option>
+                        <option value="ระงับโครงการ">ระงับโครงการ</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">ปีงบประมาณ</label>
+                    <input type="text" id="projYear" class="w-full border rounded px-3 py-2 text-base" value="2570" placeholder="เช่น 2570">
+                </div>
+            </div>
+
+            <!-- คณะกรรมการตรวจรับ -->
+            <div class="mt-4 border-t pt-3">
+                <label class="block text-sm font-medium text-gray-700 mb-2">👥 คณะกรรมการตรวจรับพัสดุ</label>
+                <div id="personList" class="space-y-2 mb-2">
+                    <div class="person-row flex flex-wrap gap-2 items-center">
+                        <input type="text" class="person-name flex-1 min-w-[120px] border rounded px-2 py-2 text-sm" placeholder="ชื่อ-นามสกุล">
+                        <input type="text" class="person-position w-24 border rounded px-2 py-2 text-sm" placeholder="ตำแหน่ง">
+                        <select class="person-role border rounded px-2 py-2 text-sm min-w-[150px]">
+                            <option value="">-- เลือกประเภท --</option>
+                            <option value="ประธานคณะกรรมการ">ประธานคณะกรรมการ</option>
+                            <option value="กรรมการ">กรรมการ</option>
+                            <option value="ผู้ควบคุมงาน">ผู้ควบคุมงาน</option>
+                            <option value="ผู้ช่วยผู้ควบคุมงาน">ผู้ช่วยผู้ควบคุมงาน</option>
+                        </select>
+                        <button onclick="removePersonRow(this)" class="text-red-500 text-lg px-1">×</button>
+                    </div>
+                </div>
+                <button onclick="addPersonRow()" class="text-blue-600 text-sm">+ เพิ่มรายชื่อ</button>
+            </div>
+
+            <div class="mt-3">
+                <label class="block text-sm font-medium text-gray-700 mb-1">รายละเอียดเพิ่มเติม/ที่ตั้ง</label>
+                <textarea id="projDetail" rows="2" class="w-full border rounded px-3 py-2 text-base" placeholder="สถานที่ตั้ง รายละเอียดขอบเขตงาน..."></textarea>
+            </div>
+
+            <div class="flex gap-2 mt-4 justify-end">
+                <button onclick="closeForm()" class="bg-gray-300 px-4 py-2 rounded text-sm">ยกเลิก</button>
+                <button onclick="saveProject()" class="bg-green-600 text-white px-4 py-2 rounded text-sm font-medium">💾 บันทึกโครงการ</button>
+            </div>
+        </div>
+
+        <!-- ตารางแสดงผล -->
+        <div class="bg-white rounded-lg shadow-md overflow-x-auto border">
+            <table class="w-full text-sm min-w-[700px]">
+                <thead class="bg-blue-50 border-b border-blue-100">
+                    <tr>
+                        <th class="p-3 text-left font-semibold text-gray-700 w-12">ลำดับ</th>
+                        <th class="p-3 text-left font-semibold text-gray-700">ชื่อโครงการ</th>
+                        <th class="p-3 text-left font-semibold text-gray-700">งบประมาณ/ปี</th>
+                        <th class="p-3 text-left font-semibold text-gray-700 w-72">คณะกรรมการ</th>
+                        <th class="p-3 text-left font-semibold text-gray-700 w-24">สถานะ</th>
+                        <th class="p-3 text-center font-semibold text-gray-700 w-28">จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody id="projectTable" class="divide-y divide-gray-100"></tbody>
+            </table>
+            <p id="emptyMsg" class="text-center py-10 text-gray-500">ยังไม่มีข้อมูล กดปุ่ม "เพิ่มโครงการใหม่"</p>
+        </div>
+
+        <input type="file" id="importFile" accept=".json" class="hidden">
+    </div>
+
+    <script>
+        // ✅ คีย์เก็บข้อมูล
+        const STORAGE_KEY = 'project_2570_data';
+        let projects = [];
+
+        // === หน้าจอเริ่มต้น ===
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                document.getElementById('splashScreen').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('splashScreen').style.display = 'none';
+                    document.getElementById('mainContent').style.display = 'block';
+                    loadData(); // โหลดข้อมูลทันที
+                }, 400);
+            }, 1200);
+        });
+
+        // === จัดการแถวบุคคล ===
+        function addPersonRow() {
+            const c = document.getElementById('personList');
+            const r = document.createElement('div');
+            r.className = 'person-row flex flex-wrap gap-2 items-center';
+            r.innerHTML = `
+                <input type="text" class="person-name flex-1 min-w-[120px] border rounded px-2 py-2 text-sm" placeholder="ชื่อ-นามสกุล">
+                <input type="text" class="person-position w-24 border rounded px-2 py-2 text-sm" placeholder="ตำแหน่ง">
+                <select class="person-role border rounded px-2 py-2 text-sm min-w-[150px]">
+                    <option value="">-- เลือกประเภท --</option>
+                    <option value="ประธานคณะกรรมการ">ประธานคณะกรรมการ</option>
+                    <option value="กรรมการ">กรรมการ</option>
+                    <option value="ผู้ควบคุมงาน">ผู้ควบคุมงาน</option>
+                    <option value="ผู้ช่วยผู้ควบคุมงาน">ผู้ช่วยผู้ควบคุมงาน</option>
+                </select>
+                <button onclick="removePersonRow(this)" class="text-red-500 text-lg px-1">×</button>
+            `;
+            c.appendChild(r);
+        }
+        function removePersonRow(b) { b.parentElement.remove(); }
+
+        // === ฟอร์ม ===
+        function openForm() { 
+            document.getElementById('formContainer').classList.remove('hidden'); 
+            document.getElementById('formTitle').textContent = '➕ เพิ่มโครงการใหม่';
+            document.getElementById('editId').value = '';
+        }
+        function closeForm() { 
+            document.getElementById('formContainer').classList.add('hidden'); 
+            clearForm(); 
+        }
+        function clearForm() {
+            document.getElementById('projName').value = '';
+            document.getElementById('projSource').value = '';
+            document.getElementById('projStatus').value = 'รอดำเนินการ';
+            document.getElementById('projYear').value = '2570';
+            document.getElementById('projDetail').value = '';
+            document.getElementById('editId').value = '';
+            document.getElementById('personList').innerHTML = `
+                <div class="person-row flex flex-wrap gap-2 items-center">
+                    <input type="text" class="person-name flex-1 min-w-[120px] border rounded px-2 py-2 text-sm" placeholder="ชื่อ-นามสกุล">
+                    <input type="text" class="person-position w-24 border rounded px-2 py-2 text-sm" placeholder="ตำแหน่ง">
+                    <select class="person-role border rounded px-2 py-2 text-sm min-w-[150px]">
+                        <option value="">-- เลือกประเภท --</option>
+                        <option value="ประธานคณะกรรมการ">ประธานคณะกรรมการ</option>
+                        <option value="กรรมการ">กรรมการ</option>
+                        <option value="ผู้ควบคุมงาน">ผู้ควบคุมงาน</option>
+                        <option value="ผู้ช่วยผู้ควบคุมงาน">ผู้ช่วยผู้ควบคุมงาน</option>
+                    </select>
+                    <button onclick="removePersonRow(this)" class="text-red-500 text-lg px-1">×</button>
+                </div>
+            `;
+        }
+
+        // === เก็บ/โหลด localStorage ===
+        function saveToStorage() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
+        }
+        function loadData() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if(saved) projects = JSON.parse(saved);
+            renderTable();
+        }
+
+        // === บันทึกโครงการ (เพิ่ม/แก้ไข) ===
+        function saveProject() {
+            const editId = document.getElementById('editId').value;
+            const n = document.getElementById('projName').value.trim();
+            const source = document.getElementById('projSource').value.trim();
+            const year = document.getElementById('projYear').value.trim() || '2570';
+            const s = document.getElementById('projStatus').value;
+            const d = document.getElementById('projDetail').value.trim();
+            
+            if (!n || !source) { alert('กรอกชื่อโครงการและแหล่งงบประมาณให้ครบถ้วน'); return; }
+
+            const persons = [];
+            document.querySelectorAll('#personList > div').forEach(r => {
+                const nm = r.querySelector('.person-name').value.trim();
+                const pos = r.querySelector('.person-position').value.trim();
+                const role = r.querySelector('.person-role').value;
+                if (nm) persons.push({name: nm, position: pos || '-', role: role || 'ไม่ระบุ'});
+            });
+
+            const projData = {
+                name:n, source, year, status:s, persons, detail:d,
+                updatedAt: new Date().toISOString()
+            };
+
+            if(editId) {
+                // ✅ โหมดแก้ไข
+                const idx = projects.findIndex(x => x.id == editId);
+                if(idx !== -1) projects[idx] = {...projects[idx], ...projData};
+                alert('✅ อัปเดตข้อมูลเรียบร้อย');
+            } else {
+                // ✅ โหมดเพิ่มใหม่
+                projects.unshift({id:Date.now(), ...projData, createdAt: new Date().toISOString()});
+                alert('✅ บันทึกโครงการเรียบร้อย');
+            }
+            
+            saveToStorage(); renderTable(); closeForm();
+        }
+
+        // === แก้ไขโครงการ ===
+        function editProject(id) {
+            const p = projects.find(x => x.id === id);
+            if(!p) return;
+
+            document.getElementById('formContainer').classList.remove('hidden');
+            document.getElementById('formTitle').textContent = '✏️ แก้ไขโครงการ';
+            document.getElementById('editId').value = id;
+            
+            document.getElementById('projName').value = p.name;
+            document.getElementById('projSource').value = p.source;
+            document.getElementById('projYear').value = p.year || '2570';
+            document.getElementById('projStatus').value = p.status;
+            document.getElementById('projDetail').value = p.detail || '';
+
+            // โหลดรายชื่อเดิม
+            const list = document.getElementById('personList');
+            list.innerHTML = '';
+            if(p.persons?.length) {
+                p.persons.forEach(pr => {
+                    const row = document.createElement('div');
+                    row.className = 'person-row flex flex-wrap gap-2 items-center';
+                    row.innerHTML = `
+                        <input type="text" class="person-name flex-1 min-w-[120px] border rounded px-2 py-2 text-sm" value="${escapeHtml(pr.name)}" placeholder="ชื่อ-นามสกุล">
+                        <input type="text" class="person-position w-24 border rounded px-2 py-2 text-sm" value="${escapeHtml(pr.position)}" placeholder="ตำแหน่ง">
+                        <select class="person-role border rounded px-2 py-2 text-sm min-w-[150px]">
+                            <option value="">-- เลือกประเภท --</option>
+                            <option value="ประธานคณะกรรมการ" ${pr.role==='ประธานคณะกรรมการ'?'selected':''}>ประธานคณะกรรมการ</option>
+                            <option value="กรรมการ" ${pr.role==='กรรมการ'?'selected':''}>กรรมการ</option>
+                            <option value="ผู้ควบคุมงาน" ${pr.role==='ผู้ควบคุมงาน'?'selected':''}>ผู้ควบคุมงาน</option>
+                            <option value="ผู้ช่วยผู้ควบคุมงาน" ${pr.role==='ผู้ช่วยผู้ควบคุมงาน'?'selected':''}>ผู้ช่วยผู้ควบคุมงาน</option>
+                        </select>
+                        <button onclick="removePersonRow(this)" class="text-red-500 text-lg px-1">×</button>
+                    `;
+                    list.appendChild(row);
+                });
+            } else addPersonRow();
+        }
+
+        // === แสดงตาราง ===
+        function renderTable() {
+            const tb = document.getElementById('projectTable');
+            const em = document.getElementById('emptyMsg');
+            tb.innerHTML = '';
+            if (projects.length === 0) { em.classList.remove('hidden'); return; }
+            em.classList.add('hidden');
+
+            projects.forEach((it,i) => {
+                const pl = it.persons?.length 
+                    ? it.persons.map(p => `• ${escapeHtml(p.name)}<br><span class="text-gray-500 text-xs">${escapeHtml(p.position)} / ${escapeHtml(p.role)}</span>`).join('<br>') 
+                    : '-';
+
+                const stClass = it.status==='เสร็จสิ้น'?'bg-green-100 text-green-800':
+                               it.status==='กำลังดำเนินการ'?'bg-blue-100 text-blue-800':
+                               it.status==='ระงับโครงการ'?'bg-red-100 text-red-800':'bg-gray-100 text-gray-800';
+
+                const r = document.createElement('tr');
+                r.className = 'hover:bg-gray-50 transition-colors';
+                r.innerHTML = `
+                    <td class="p-3 align-top">${i+1}</td>
+                    <td class="p-3 align-top font-medium">${escapeHtml(it.name)}</td>
+                    <td class="p-3 align-top">${escapeHtml(it.source)}<br><span class="text-gray-500 text-xs">ปี ${it.year||'2570'}</span></td>
+                    <td class="p-3 align-top text-sm leading-relaxed">${pl}</td>
+                    <td class="p-3 align-top"><span class="status-badge ${stClass}">${it.status}</span></td>
+                    <td class="p-3 align-top text-center">
+                        <button onclick="editProject(${it.id})" class="text-blue-600 hover:text-blue-800 font-medium mr-2">
+                            <i class="fa fa-pencil"></i> แก้ไข
+                        </button>
+                        <button onclick="del(${it.id})" class="text-red-600 hover:text-red-800 font-medium">
+                            <i class="fa fa-trash"></i> ลบ
+                        </button>
+                    </td>
+                `;
+                tb.appendChild(r);
+            });
+        }
+
+        function del(id) {
+            if(confirm('ยืนยันการลบข้อมูลโครงการนี้ใช่ไหม?')) { 
+                projects = projects.filter(x=>x.id!==id); 
+                saveToStorage(); renderTable(); 
+            }
+        }
+
+        // === สำรอง/นำเข้า ===
+        function exportData() {
+            if (projects.length === 0) { alert('ไม่มีข้อมูลให้บันทึก'); return; }
+            const dataStr = JSON.stringify(projects, null, 2);
+            const blob = new Blob([dataStr], {type: 'application/json;charset=utf-8'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `โครงการก่อสร้าง_ปี2570_${new Date().toLocaleDateString('th-TH')}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        function importDataPrompt() { document.getElementById('importFile').click(); }
+        document.getElementById('importFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const imported = JSON.parse(event.target.result);
+                    if(confirm(`พบข้อมูล ${imported.length} รายการ ต้องการรวมเข้ากับข้อมูลเดิมหรือไม่? (กด ยกเลิก จะแทนที่ทั้งหมด)`)) {
+                        projects = [...projects, ...imported];
+                    } else {
+                        projects = imported;
+                    }
+                    saveToStorage(); renderTable();
+                    alert('✅ นำเข้าข้อมูลเรียบร้อย');
+                } catch (err) {
+                    alert('❌ ไฟล์ไม่ถูกต้อง หรือไม่ใช่ข้อมูลโครงการ');
+                }
+                this.value = '';
+            };
+            reader.readAsText(file);
+        });
+
+        // === ช่วยป้องกัน XSS ===
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
