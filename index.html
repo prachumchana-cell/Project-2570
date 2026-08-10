@@ -3,17 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- ✅ เพิ่มสำหรับ PWA -->
     <meta name="mobile-web-app-capable" content="yes">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2563eb">
-    
     <title>ระบบจัดการโครงการก่อสร้าง 2570</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    
+    <!-- ✅ เปลี่ยนลิงก์ Tailwind เป็นเวอร์ชันเสถียร อ่านง่าย ไม่มีปัญหา -->
+    <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+    
+    <!-- ✅ Font Awesome ลิงก์ตรงๆ -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     
     <style>
-        /* ✅ หน้าจอเริ่มต้น (ถ้าต้องการ) */
         #splashScreen {
             position: fixed;
             inset: 0;
@@ -25,7 +26,6 @@
             transition: opacity 0.4s;
         }
         #mainContent { display: none; }
-        /* ปรับแต่งเพิ่มเติม */
         .person-row { transition: all 0.2s; }
         .status-badge { font-size: 0.75rem; padding: 0.25rem 0.75rem; border-radius: 999px; }
     </style>
