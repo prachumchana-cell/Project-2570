@@ -1,19 +1,21 @@
 {
-  "name": "ระบบจัดการโครงการก่อสร้าง",
+  "name": "ระบบจัดการโครงการก่อสร้าง ปี 2570",
   "short_name": "โครงการ 2570",
+  "description": "ระบบบันทึกและจัดการข้อมูลโครงการก่อสร้าง ปีงบประมาณ 2570",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#f0f4f8",
   "theme_color": "#2563eb",
+  "orientation": "portrait",
   "icons": [
     {
-      "src": "icons/icon-192.png",
+      "src": "icon-192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "icons/icon-512.png",
+      "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png"
     }
