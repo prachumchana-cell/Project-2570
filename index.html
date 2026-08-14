@@ -1,387 +1,718 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="mobile-web-app-capable" content="yes">
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#2563eb">
-    <title>ระบบจัดการโครงการก่อสร้าง 2570</title>
-    
-    <!-- ✅ เปลี่ยนลิงก์ Tailwind เป็นเวอร์ชันเสถียร อ่านง่าย ไม่มีปัญหา -->
-    <script src="https://cdn.tailwindcss.com/3.4.1"></script>
-    
-    <!-- ✅ Font Awesome ลิงก์ตรงๆ -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-    
-    <style>
-        #splashScreen {
-            position: fixed;
-            inset: 0;
-            background: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-            transition: opacity 0.4s;
-        }
-        #mainContent { display: none; }
-        .person-row { transition: all 0.2s; }
-        .status-badge { font-size: 0.75rem; padding: 0.25rem 0.75rem; border-radius: 999px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1B4965">
+<title>ระบบจัดการโครงการก่อสร้าง ปีงบประมาณ 2570</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@500;600;700&family=Sarabun:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#16232E;
+  --paper:#EDF0EE;
+  --paper-2:#E2E7E3;
+  --card:#FCFDFC;
+  --blueprint:#1B4965;
+  --blueprint-2:#123047;
+  --blueprint-light:#5FA8D3;
+  --steel:#5C6B70;
+  --line:#CBD3CC;
+  --amber:#B9790A;
+  --amber-bg:#FBF0DC;
+  --green:#2F7A4D;
+  --green-bg:#E1F0E4;
+  --red:#B4443B;
+  --red-bg:#F8E3E1;
+  --grey:#6B7472;
+  --grey-bg:#E6E9E6;
+  --radius:10px;
+  --shadow:0 1px 2px rgba(22,35,46,.06), 0 4px 14px rgba(22,35,46,.06);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:
+    radial-gradient(circle at 1px 1px, rgba(27,73,101,.08) 1px, transparent 0) 0 0/22px 22px,
+    var(--paper);
+  color:var(--ink);
+  font-family:'Sarabun',sans-serif;
+  min-height:100vh;
+  padding-bottom:60px;
+}
+.mono{font-family:'IBM Plex Mono',monospace;}
+h1,h2,h3,.display{font-family:'Kanit',sans-serif;}
+
+#splash{
+  position:fixed;inset:0;background:var(--blueprint);
+  display:flex;align-items:center;justify-content:center;flex-direction:column;
+  z-index:9999;transition:opacity .45s ease;color:#fff;gap:10px;
+}
+#splash .mark{font-size:2.6rem;letter-spacing:2px;font-family:'Kanit',sans-serif;font-weight:700;}
+#splash .sub{font-size:.85rem;letter-spacing:3px;color:#9FC6DE;text-transform:uppercase;}
+#splash .bar{width:120px;height:2px;background:rgba(255,255,255,.2);overflow:hidden;border-radius:2px;}
+#splash .bar span{display:block;width:40%;height:100%;background:var(--blueprint-light);animation:load 1.1s ease-in-out infinite;}
+@keyframes load{0%{transform:translateX(-100%)}100%{transform:translateX(350%)}}
+
+#app{display:none;max-width:1080px;margin:0 auto;padding:18px 16px 40px;}
+
+.topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:18px;flex-wrap:wrap;}
+.brand{display:flex;align-items:center;gap:12px;}
+.brand-mark{
+  width:44px;height:44px;border-radius:8px;background:var(--blueprint);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  position:relative;
+}
+.brand-mark svg{width:24px;height:24px;}
+.brand h1{font-size:1.15rem;margin:0;font-weight:700;color:var(--blueprint-2);line-height:1.3;}
+.brand .yr{font-size:.75rem;color:var(--steel);letter-spacing:.5px;margin-top:2px;}
+.icon-btn{
+  display:inline-flex;align-items:center;gap:6px;background:var(--card);
+  border:1px solid var(--line);color:var(--blueprint-2);padding:7px 12px;
+  border-radius:8px;font-size:.78rem;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:600;
+  transition:all .15s;
+}
+.icon-btn:hover{border-color:var(--blueprint-light);background:#fff;}
+.header-actions{display:flex;gap:8px;}
+
+/* stat cards */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+.stat-card{
+  background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:12px 14px;position:relative;overflow:hidden;
+}
+.stat-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--stat-c,var(--blueprint));}
+.stat-card .num{font-family:'IBM Plex Mono',monospace;font-size:1.35rem;font-weight:600;color:var(--ink);}
+.stat-card .lbl{font-size:.72rem;color:var(--steel);margin-top:2px;}
+@media(max-width:680px){.stats{grid-template-columns:repeat(2,1fr);}}
+
+/* toolbar */
+.toolbar{
+  display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;
+  background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:10px;
+}
+.search-wrap{position:relative;flex:1;min-width:180px;}
+.search-wrap input{
+  width:100%;padding:9px 12px 9px 32px;border:1px solid var(--line);border-radius:7px;
+  font-family:'Sarabun',sans-serif;font-size:.88rem;background:var(--paper);
+}
+.search-wrap svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--steel);}
+.toolbar select{
+  padding:9px 10px;border:1px solid var(--line);border-radius:7px;font-family:'Sarabun',sans-serif;
+  font-size:.85rem;background:var(--paper);color:var(--ink);
+}
+.btn-primary{
+  background:var(--blueprint);color:#fff;border:none;padding:10px 16px;border-radius:8px;
+  font-family:'Sarabun',sans-serif;font-weight:700;font-size:.88rem;cursor:pointer;
+  display:inline-flex;align-items:center;gap:7px;transition:background .15s;white-space:nowrap;
+}
+.btn-primary:hover{background:var(--blueprint-2);}
+
+/* project cards */
+.project-card{
+  background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:16px;margin-bottom:12px;position:relative;box-shadow:var(--shadow);
+}
+.project-card::before,.project-card::after{
+  content:'';position:absolute;width:11px;height:11px;top:8px;
+  border-top:2px solid var(--blueprint-light);opacity:.55;
+}
+.project-card::before{left:8px;border-left:2px solid var(--blueprint-light);}
+.project-card::after{right:8px;border-right:2px solid var(--blueprint-light);}
+.card-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:10px;}
+.card-idx{font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--steel);letter-spacing:1px;}
+.card-title{font-family:'Kanit',sans-serif;font-size:1.02rem;font-weight:600;color:var(--ink);margin:2px 0 3px;}
+.card-sub{font-size:.78rem;color:var(--steel);}
+.badge{font-size:.72rem;font-weight:700;padding:4px 11px;border-radius:99px;white-space:nowrap;display:inline-flex;align-items:center;gap:5px;}
+.badge-pending{background:var(--grey-bg);color:var(--grey);}
+.badge-progress{background:#DDEBF3;color:var(--blueprint);}
+.badge-done{background:var(--green-bg);color:var(--green);}
+.badge-cancelled{background:var(--red-bg);color:var(--red);}
+
+.meta-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:10px 0;}
+@media(max-width:680px){.meta-grid{grid-template-columns:1fr 1fr;}}
+.meta-item .k{font-size:.68rem;color:var(--steel);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;}
+.meta-item .v{font-size:.86rem;font-weight:600;color:var(--ink);font-family:'IBM Plex Mono',monospace;}
+
+.progress-row{margin:12px 0 8px;}
+.progress-row .pl{display:flex;justify-content:space-between;font-size:.72rem;color:var(--steel);margin-bottom:4px;}
+.progress-track{height:6px;background:var(--paper-2);border-radius:99px;overflow:hidden;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--blueprint-light),var(--blueprint));border-radius:99px;transition:width .3s;}
+
+.committee-toggle{
+  font-size:.78rem;color:var(--blueprint);cursor:pointer;font-weight:600;display:inline-flex;
+  align-items:center;gap:5px;margin-top:6px;user-select:none;
+}
+.committee-list{display:none;margin-top:8px;border-top:1px dashed var(--line);padding-top:8px;}
+.committee-list.open{display:block;}
+.person-line{font-size:.82rem;padding:4px 0;display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid var(--paper-2);}
+.person-line:last-child{border-bottom:none;}
+.person-line .role-tag{font-size:.68rem;color:var(--steel);white-space:nowrap;}
+
+.detail-text{font-size:.82rem;color:var(--steel);margin-top:8px;line-height:1.5;white-space:pre-wrap;}
+
+.card-actions{display:flex;justify-content:flex-end;gap:6px;margin-top:12px;padding-top:10px;border-top:1px solid var(--paper-2);}
+.act-btn{
+  border:1px solid var(--line);background:var(--paper);color:var(--ink);padding:6px 12px;
+  border-radius:7px;font-size:.78rem;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:600;
+  display:inline-flex;align-items:center;gap:5px;
+}
+.act-btn.edit:hover{border-color:var(--blueprint);color:var(--blueprint);}
+.act-btn.del:hover{border-color:var(--red);color:var(--red);}
+
+.empty-state{text-align:center;padding:60px 20px;color:var(--steel);}
+.empty-state svg{width:46px;height:46px;color:var(--line);margin-bottom:12px;}
+.empty-state h3{font-family:'Kanit',sans-serif;color:var(--blueprint-2);margin:0 0 6px;font-size:1.05rem;}
+.empty-state p{font-size:.85rem;margin:0;}
+
+/* overlay + panel */
+.overlay{
+  position:fixed;inset:0;background:rgba(16,26,34,.5);z-index:1000;
+  display:flex;justify-content:flex-end;opacity:0;pointer-events:none;transition:opacity .2s;
+}
+.overlay.show{opacity:1;pointer-events:auto;}
+.panel{
+  width:100%;max-width:480px;background:var(--paper);height:100%;overflow-y:auto;
+  transform:translateX(20px);transition:transform .25s ease;box-shadow:-8px 0 30px rgba(0,0,0,.15);
+}
+.overlay.show .panel{transform:translateX(0);}
+.panel-head{
+  background:var(--blueprint);color:#fff;padding:18px 20px;position:sticky;top:0;z-index:2;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.panel-head h2{margin:0;font-size:1.05rem;}
+.panel-head .close{background:none;border:none;color:#fff;font-size:1.3rem;cursor:pointer;line-height:1;opacity:.85;}
+.panel-body{padding:18px 20px;}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:.8rem;font-weight:600;color:var(--blueprint-2);margin-bottom:5px;}
+.field .req{color:var(--red);}
+.field input,.field select,.field textarea{
+  width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:7px;
+  font-family:'Sarabun',sans-serif;font-size:.9rem;background:#fff;color:var(--ink);
+}
+.field input:focus,.field select:focus,.field textarea:focus{outline:2px solid var(--blueprint-light);outline-offset:1px;border-color:var(--blueprint-light);}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.section-label{
+  font-size:.72rem;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--steel);
+  margin:22px 0 10px;padding-top:14px;border-top:1px solid var(--line);
+}
+.section-label:first-child{margin-top:0;padding-top:0;border-top:none;}
+
+.person-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:7px;padding:8px;margin-bottom:6px;}
+.person-row input,.person-row select{flex:1;min-width:100px;padding:7px 8px;font-size:.82rem;border:1px solid var(--line);border-radius:6px;}
+.person-row .rm{background:none;border:none;color:var(--red);font-size:1.1rem;cursor:pointer;padding:0 4px;flex:0;}
+.add-person-btn{font-size:.8rem;color:var(--blueprint);font-weight:600;background:none;border:none;cursor:pointer;padding:4px 0;}
+
+.range-wrap{display:flex;align-items:center;gap:10px;}
+.range-wrap input[type=range]{flex:1;accent-color:var(--blueprint);}
+.range-val{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:.9rem;width:44px;text-align:right;}
+
+.panel-foot{
+  position:sticky;bottom:0;background:var(--paper);border-top:1px solid var(--line);
+  padding:14px 20px;display:flex;justify-content:flex-end;gap:8px;
+}
+.btn-ghost{background:#fff;border:1px solid var(--line);color:var(--ink);padding:10px 16px;border-radius:8px;font-weight:600;font-size:.86rem;cursor:pointer;}
+
+/* confirm modal */
+#confirmOverlay{position:fixed;inset:0;background:rgba(16,26,34,.5);z-index:1100;display:none;align-items:center;justify-content:center;padding:20px;}
+#confirmOverlay.show{display:flex;}
+.confirm-box{background:#fff;border-radius:12px;padding:22px;max-width:340px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.25);}
+.confirm-box h3{margin:0 0 8px;font-size:1rem;color:var(--ink);}
+.confirm-box p{margin:0 0 18px;font-size:.85rem;color:var(--steel);}
+.confirm-actions{display:flex;justify-content:flex-end;gap:8px;}
+.btn-danger{background:var(--red);color:#fff;border:none;padding:9px 15px;border-radius:7px;font-weight:600;font-size:.85rem;cursor:pointer;}
+
+/* toast */
+.toast-container{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:1200;display:flex;flex-direction:column;gap:8px;align-items:center;width:100%;padding:0 16px;}
+.toast{
+  background:var(--ink);color:#fff;padding:11px 18px;border-radius:8px;font-size:.85rem;
+  box-shadow:0 8px 24px rgba(0,0,0,.25);display:flex;align-items:center;gap:8px;
+  animation:toastIn .25s ease;max-width:400px;
+}
+.toast.err{background:var(--red);}
+.toast.ok{background:var(--green);}
+@keyframes toastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+.hidden{display:none !important;}
+input[type=file]{display:none;}
+
+/* floating action button */
+.fab{
+  position:fixed;right:22px;bottom:22px;z-index:900;
+  width:58px;height:58px;border-radius:50%;
+  background:var(--blueprint);color:#fff;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 6px 18px rgba(27,73,101,.4), 0 2px 6px rgba(0,0,0,.15);
+  transition:transform .15s ease, background .15s ease;
+}
+.fab:hover{background:var(--blueprint-2);transform:scale(1.06);}
+.fab:active{transform:scale(.96);}
+.fab svg{width:24px;height:24px;}
+@media(max-width:680px){
+  .fab{right:16px;bottom:16px;width:54px;height:54px;}
+}
+</style>
 </head>
-<body class="bg-gray-50 font-sans">
-    <!-- หน้าจอเริ่มต้น -->
-    <div id="splashScreen">
-        <div class="text-center">
-            <i class="fa fa-building text-blue-600 text-5xl mb-3"></i>
-            <h2 class="text-xl font-bold text-gray-700">ระบบจัดการโครงการ</h2>
-        </div>
+<body>
+
+<div id="splash">
+  <div class="mark">⌗ โครงการก่อสร้าง</div>
+  <div class="sub">ปีงบประมาณ 2570</div>
+  <div class="bar"><span></span></div>
+</div>
+
+<div id="app">
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6M9 12h.01M15 12h.01M9 15.5h.01M15 15.5h.01"/></svg>
+      </div>
+      <div>
+        <h1>ระบบจัดการโครงการก่อสร้าง</h1>
+        <div class="yr">ปีงบประมาณ 2570 · แผนงานและคณะกรรมการตรวจรับพัสดุ</div>
+      </div>
     </div>
-
-    <!-- เนื้อหาหลัก -->
-    <div id="mainContent" class="max-w-6xl mx-auto p-3 md:p-5">
-        <h1 class="text-xl md:text-2xl font-bold text-center text-blue-700 mb-5">📋 ระบบจัดการข้อมูลโครงการก่อสร้าง</h1>
-
-        <div class="flex flex-wrap justify-between items-center mb-3 gap-2">
-            <button onclick="openForm()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow text-sm">
-                <i class="fa fa-plus mr-1"></i> เพิ่มโครงการใหม่
-            </button>
-            <div class="flex gap-2">
-                <button onclick="exportData()" class="bg-green-600 text-white px-3 py-1.5 rounded text-xs">
-                    <i class="fa fa-download mr-1"></i>สำรองข้อมูล
-                </button>
-                <button onclick="importDataPrompt()" class="bg-gray-600 text-white px-3 py-1.5 rounded text-xs">
-                    <i class="fa fa-upload mr-1"></i>นำเข้า
-                </button>
-            </div>
-        </div>
-
-        <!-- ฟอร์มเพิ่ม/แก้ไข -->
-        <div id="formContainer" class="hidden bg-white p-4 rounded-lg shadow mb-5 border">
-            <h3 class="text-lg font-semibold mb-3 text-gray-800" id="formTitle">➕ เพิ่มโครงการใหม่</h3>
-            <input type="hidden" id="editId"> <!-- สำหรับแก้ไข -->
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อโครงการ *</label>
-                    <input type="text" id="projName" class="w-full border rounded px-3 py-2 text-base" placeholder="ระบุชื่อโครงการ" required>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">แหล่งงบประมาณ *</label>
-                    <input type="text" id="projSource" class="w-full border rounded px-3 py-2 text-base" placeholder="เช่น งบประมาณแผ่นดิน/จังหวัด" required>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">สถานะโครงการ</label>
-                    <select id="projStatus" class="w-full border rounded px-3 py-2 text-base">
-                        <option value="รอดำเนินการ">รอดำเนินการ</option>
-                        <option value="กำลังดำเนินการ">กำลังดำเนินการ</option>
-                        <option value="เสร็จสิ้น">เสร็จสิ้น</option>
-                        <option value="ระงับโครงการ">ระงับโครงการ</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">ปีงบประมาณ</label>
-                    <input type="text" id="projYear" class="w-full border rounded px-3 py-2 text-base" value="2570" placeholder="เช่น 2570">
-                </div>
-            </div>
-
-            <!-- คณะกรรมการตรวจรับ -->
-            <div class="mt-4 border-t pt-3">
-                <label class="block text-sm font-medium text-gray-700 mb-2">👥 คณะกรรมการตรวจรับพัสดุ</label>
-                <div id="personList" class="space-y-2 mb-2">
-                    <div class="person-row flex flex-wrap gap-2 items-center">
-                        <input type="text" class="person-name flex-1 min-w-[120px] border rounded px-2 py-2 text-sm" placeholder="ชื่อ-นามสกุล">
-                        <input type="text" class="person-position w-24 border rounded px-2 py-2 text-sm" placeholder="ตำแหน่ง">
-                        <select class="person-role border rounded px-2 py-2 text-sm min-w-[150px]">
-                            <option value="">-- เลือกประเภท --</option>
-                            <option value="ประธานคณะกรรมการ">ประธานคณะกรรมการ</option>
-                            <option value="กรรมการ">กรรมการ</option>
-                            <option value="ผู้ควบคุมงาน">ผู้ควบคุมงาน</option>
-                            <option value="ผู้ช่วยผู้ควบคุมงาน">ผู้ช่วยผู้ควบคุมงาน</option>
-                        </select>
-                        <button onclick="removePersonRow(this)" class="text-red-500 text-lg px-1">×</button>
-                    </div>
-                </div>
-                <button onclick="addPersonRow()" class="text-blue-600 text-sm">+ เพิ่มรายชื่อ</button>
-            </div>
-
-            <div class="mt-3">
-                <label class="block text-sm font-medium text-gray-700 mb-1">รายละเอียดเพิ่มเติม/ที่ตั้ง</label>
-                <textarea id="projDetail" rows="2" class="w-full border rounded px-3 py-2 text-base" placeholder="สถานที่ตั้ง รายละเอียดขอบเขตงาน..."></textarea>
-            </div>
-
-            <div class="flex gap-2 mt-4 justify-end">
-                <button onclick="closeForm()" class="bg-gray-300 px-4 py-2 rounded text-sm">ยกเลิก</button>
-                <button onclick="saveProject()" class="bg-green-600 text-white px-4 py-2 rounded text-sm font-medium">💾 บันทึกโครงการ</button>
-            </div>
-        </div>
-
-        <!-- ตารางแสดงผล -->
-        <div class="bg-white rounded-lg shadow-md overflow-x-auto border">
-            <table class="w-full text-sm min-w-[700px]">
-                <thead class="bg-blue-50 border-b border-blue-100">
-                    <tr>
-                        <th class="p-3 text-left font-semibold text-gray-700 w-12">ลำดับ</th>
-                        <th class="p-3 text-left font-semibold text-gray-700">ชื่อโครงการ</th>
-                        <th class="p-3 text-left font-semibold text-gray-700">งบประมาณ/ปี</th>
-                        <th class="p-3 text-left font-semibold text-gray-700 w-72">คณะกรรมการ</th>
-                        <th class="p-3 text-left font-semibold text-gray-700 w-24">สถานะ</th>
-                        <th class="p-3 text-center font-semibold text-gray-700 w-28">จัดการ</th>
-                    </tr>
-                </thead>
-                <tbody id="projectTable" class="divide-y divide-gray-100"></tbody>
-            </table>
-            <p id="emptyMsg" class="text-center py-10 text-gray-500">ยังไม่มีข้อมูล กดปุ่ม "เพิ่มโครงการใหม่"</p>
-        </div>
-
-        <input type="file" id="importFile" accept=".json" class="hidden">
+    <div class="header-actions">
+      <button class="icon-btn" onclick="exportData()">⭳ สำรองข้อมูล</button>
+      <button class="icon-btn" onclick="document.getElementById('importFile').click()">⭱ นำเข้า</button>
     </div>
+  </div>
 
-    <script>
-        // ✅ คีย์เก็บข้อมูล
-        const STORAGE_KEY = 'project_2570_data';
-        let projects = [];
+  <div class="stats" id="statsRow"></div>
 
-        // === หน้าจอเริ่มต้น ===
-        document.addEventListener('DOMContentLoaded', () => {
-            setTimeout(() => {
-                document.getElementById('splashScreen').style.opacity = '0';
-                setTimeout(() => {
-                    document.getElementById('splashScreen').style.display = 'none';
-                    document.getElementById('mainContent').style.display = 'block';
-                    loadData(); // โหลดข้อมูลทันที
-                }, 400);
-            }, 1200);
-        });
+  <div class="toolbar">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input type="text" id="searchInput" placeholder="ค้นหาชื่อโครงการ ผู้รับเหมา แหล่งงบประมาณ..." oninput="renderList()">
+    </div>
+    <select id="filterStatus" onchange="renderList()">
+      <option value="">ทุกสถานะ</option>
+      <option value="รอดำเนินการ">รอดำเนินการ</option>
+      <option value="ระหว่างดำเนินการ">ระหว่างดำเนินการ</option>
+      <option value="เสร็จสิ้น">เสร็จสิ้น</option>
+      <option value="บอกเลิกสัญญา">บอกเลิกสัญญา</option>
+    </select>
+    <select id="sortBy" onchange="renderList()">
+      <option value="name">เรียง: ชื่อโครงการ (ก-ฮ)</option>
+      <option value="updated">เรียง: อัปเดตล่าสุด</option>
+      <option value="budget">เรียง: งบประมาณสูงสุด</option>
+      <option value="progress">เรียง: ความคืบหน้า</option>
+    </select>
+  </div>
 
-        // === จัดการแถวบุคคล ===
-        function addPersonRow() {
-            const c = document.getElementById('personList');
-            const r = document.createElement('div');
-            r.className = 'person-row flex flex-wrap gap-2 items-center';
-            r.innerHTML = `
-                <input type="text" class="person-name flex-1 min-w-[120px] border rounded px-2 py-2 text-sm" placeholder="ชื่อ-นามสกุล">
-                <input type="text" class="person-position w-24 border rounded px-2 py-2 text-sm" placeholder="ตำแหน่ง">
-                <select class="person-role border rounded px-2 py-2 text-sm min-w-[150px]">
-                    <option value="">-- เลือกประเภท --</option>
-                    <option value="ประธานคณะกรรมการ">ประธานคณะกรรมการ</option>
-                    <option value="กรรมการ">กรรมการ</option>
-                    <option value="ผู้ควบคุมงาน">ผู้ควบคุมงาน</option>
-                    <option value="ผู้ช่วยผู้ควบคุมงาน">ผู้ช่วยผู้ควบคุมงาน</option>
-                </select>
-                <button onclick="removePersonRow(this)" class="text-red-500 text-lg px-1">×</button>
-            `;
-            c.appendChild(r);
-        }
-        function removePersonRow(b) { b.parentElement.remove(); }
+  <div id="projectList"></div>
 
-        // === ฟอร์ม ===
-        function openForm() { 
-            document.getElementById('formContainer').classList.remove('hidden'); 
-            document.getElementById('formTitle').textContent = '➕ เพิ่มโครงการใหม่';
-            document.getElementById('editId').value = '';
-        }
-        function closeForm() { 
-            document.getElementById('formContainer').classList.add('hidden'); 
-            clearForm(); 
-        }
-        function clearForm() {
-            document.getElementById('projName').value = '';
-            document.getElementById('projSource').value = '';
-            document.getElementById('projStatus').value = 'รอดำเนินการ';
-            document.getElementById('projYear').value = '2570';
-            document.getElementById('projDetail').value = '';
-            document.getElementById('editId').value = '';
-            document.getElementById('personList').innerHTML = `
-                <div class="person-row flex flex-wrap gap-2 items-center">
-                    <input type="text" class="person-name flex-1 min-w-[120px] border rounded px-2 py-2 text-sm" placeholder="ชื่อ-นามสกุล">
-                    <input type="text" class="person-position w-24 border rounded px-2 py-2 text-sm" placeholder="ตำแหน่ง">
-                    <select class="person-role border rounded px-2 py-2 text-sm min-w-[150px]">
-                        <option value="">-- เลือกประเภท --</option>
-                        <option value="ประธานคณะกรรมการ">ประธานคณะกรรมการ</option>
-                        <option value="กรรมการ">กรรมการ</option>
-                        <option value="ผู้ควบคุมงาน">ผู้ควบคุมงาน</option>
-                        <option value="ผู้ช่วยผู้ควบคุมงาน">ผู้ช่วยผู้ควบคุมงาน</option>
-                    </select>
-                    <button onclick="removePersonRow(this)" class="text-red-500 text-lg px-1">×</button>
-                </div>
-            `;
-        }
+  <div class="empty-state hidden" id="emptyState">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6"/></svg>
+    <h3>ยังไม่มีโครงการในระบบ</h3>
+    <p>กดปุ่ม "เพิ่มโครงการ" เพื่อเริ่มบันทึกข้อมูลโครงการแรก</p>
+  </div>
 
-        // === เก็บ/โหลด localStorage ===
-        function saveToStorage() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
-        }
-        function loadData() {
-            const saved = localStorage.getItem(STORAGE_KEY);
-            if(saved) projects = JSON.parse(saved);
-            renderTable();
-        }
+  <input type="file" id="importFile" accept=".json">
 
-        // === บันทึกโครงการ (เพิ่ม/แก้ไข) ===
-        function saveProject() {
-            const editId = document.getElementById('editId').value;
-            const n = document.getElementById('projName').value.trim();
-            const source = document.getElementById('projSource').value.trim();
-            const year = document.getElementById('projYear').value.trim() || '2570';
-            const s = document.getElementById('projStatus').value;
-            const d = document.getElementById('projDetail').value.trim();
-            
-            if (!n || !source) { alert('กรอกชื่อโครงการและแหล่งงบประมาณให้ครบถ้วน'); return; }
+  <button class="fab" onclick="openForm()" aria-label="เพิ่มโครงการใหม่" title="เพิ่มโครงการใหม่">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+  </button>
+</div>
 
-            const persons = [];
-            document.querySelectorAll('#personList > div').forEach(r => {
-                const nm = r.querySelector('.person-name').value.trim();
-                const pos = r.querySelector('.person-position').value.trim();
-                const role = r.querySelector('.person-role').value;
-                if (nm) persons.push({name: nm, position: pos || '-', role: role || 'ไม่ระบุ'});
-            });
+<!-- form panel -->
+<div class="overlay" id="formOverlay">
+  <div class="panel">
+    <div class="panel-head">
+      <h2 id="formTitle">เพิ่มโครงการใหม่</h2>
+      <button class="close" onclick="closeForm()">✕</button>
+    </div>
+    <div class="panel-body">
+      <input type="hidden" id="editId">
 
-            const projData = {
-                name:n, source, year, status:s, persons, detail:d,
-                updatedAt: new Date().toISOString()
-            };
+      <div class="section-label">ข้อมูลโครงการ</div>
+      <div class="field">
+        <label>ชื่อโครงการ <span class="req">*</span></label>
+        <input type="text" id="projName" placeholder="เช่น ก่อสร้างถนนคอนกรีตเสริมเหล็ก สายบ้าน...">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>แหล่งงบประมาณ <span class="req">*</span></label>
+          <input type="text" id="projSource" placeholder="งบประมาณแผ่นดิน/จังหวัด">
+        </div>
+        <div class="field">
+          <label>ปีงบประมาณ</label>
+          <input type="text" id="projYear" value="2570">
+        </div>
+      </div>
+      <div class="field">
+        <label>สถานะโครงการ</label>
+        <select id="projStatus">
+          <option value="รอดำเนินการ">รอดำเนินการ</option>
+          <option value="ระหว่างดำเนินการ">ระหว่างดำเนินการ</option>
+          <option value="เสร็จสิ้น">เสร็จสิ้น</option>
+          <option value="บอกเลิกสัญญา">บอกเลิกสัญญา</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>ผู้รับเหมา / บริษัท</label>
+        <input type="text" id="projContractor" placeholder="ชื่อผู้รับเหมา (ถ้ามี)">
+      </div>
 
-            if(editId) {
-                // ✅ โหมดแก้ไข
-                const idx = projects.findIndex(x => x.id == editId);
-                if(idx !== -1) projects[idx] = {...projects[idx], ...projData};
-                alert('✅ อัปเดตข้อมูลเรียบร้อย');
-            } else {
-                // ✅ โหมดเพิ่มใหม่
-                projects.unshift({id:Date.now(), ...projData, createdAt: new Date().toISOString()});
-                alert('✅ บันทึกโครงการเรียบร้อย');
-            }
-            
-            saveToStorage(); renderTable(); closeForm();
-        }
+      <div class="section-label">งบประมาณและความคืบหน้า</div>
+      <div class="field-row">
+        <div class="field">
+          <label>วงเงินงบประมาณ (บาท)</label>
+          <input type="number" id="projBudget" placeholder="0" min="0" step="0.01">
+        </div>
+        <div class="field">
+          <label>เบิกจ่ายแล้ว (บาท)</label>
+          <input type="number" id="projDisbursed" placeholder="0" min="0" step="0.01">
+        </div>
+      </div>
+      <div class="field">
+        <label>ความคืบหน้างานก่อสร้าง</label>
+        <div class="range-wrap">
+          <input type="range" id="projProgress" min="0" max="100" value="0" oninput="document.getElementById('progressVal').textContent=this.value+'%'">
+          <span class="range-val" id="progressVal">0%</span>
+        </div>
+      </div>
 
-        // === แก้ไขโครงการ ===
-        function editProject(id) {
-            const p = projects.find(x => x.id === id);
-            if(!p) return;
+      <div class="section-label">👥 คณะกรรมการตรวจรับพัสดุ</div>
+      <div id="personList"></div>
+      <button class="add-person-btn" onclick="addPersonRow()">+ เพิ่มรายชื่อ</button>
 
-            document.getElementById('formContainer').classList.remove('hidden');
-            document.getElementById('formTitle').textContent = '✏️ แก้ไขโครงการ';
-            document.getElementById('editId').value = id;
-            
-            document.getElementById('projName').value = p.name;
-            document.getElementById('projSource').value = p.source;
-            document.getElementById('projYear').value = p.year || '2570';
-            document.getElementById('projStatus').value = p.status;
-            document.getElementById('projDetail').value = p.detail || '';
+      <div class="section-label">รายละเอียดเพิ่มเติม</div>
+      <div class="field">
+        <label>สถานที่ตั้ง / ขอบเขตงาน</label>
+        <textarea id="projDetail" rows="3" placeholder="สถานที่ตั้ง รายละเอียดขอบเขตงาน..."></textarea>
+      </div>
+    </div>
+    <div class="panel-foot">
+      <button class="btn-ghost" onclick="closeForm()">ยกเลิก</button>
+      <button class="btn-primary" onclick="saveProject()">บันทึกโครงการ</button>
+    </div>
+  </div>
+</div>
 
-            // โหลดรายชื่อเดิม
-            const list = document.getElementById('personList');
-            list.innerHTML = '';
-            if(p.persons?.length) {
-                p.persons.forEach(pr => {
-                    const row = document.createElement('div');
-                    row.className = 'person-row flex flex-wrap gap-2 items-center';
-                    row.innerHTML = `
-                        <input type="text" class="person-name flex-1 min-w-[120px] border rounded px-2 py-2 text-sm" value="${escapeHtml(pr.name)}" placeholder="ชื่อ-นามสกุล">
-                        <input type="text" class="person-position w-24 border rounded px-2 py-2 text-sm" value="${escapeHtml(pr.position)}" placeholder="ตำแหน่ง">
-                        <select class="person-role border rounded px-2 py-2 text-sm min-w-[150px]">
-                            <option value="">-- เลือกประเภท --</option>
-                            <option value="ประธานคณะกรรมการ" ${pr.role==='ประธานคณะกรรมการ'?'selected':''}>ประธานคณะกรรมการ</option>
-                            <option value="กรรมการ" ${pr.role==='กรรมการ'?'selected':''}>กรรมการ</option>
-                            <option value="ผู้ควบคุมงาน" ${pr.role==='ผู้ควบคุมงาน'?'selected':''}>ผู้ควบคุมงาน</option>
-                            <option value="ผู้ช่วยผู้ควบคุมงาน" ${pr.role==='ผู้ช่วยผู้ควบคุมงาน'?'selected':''}>ผู้ช่วยผู้ควบคุมงาน</option>
-                        </select>
-                        <button onclick="removePersonRow(this)" class="text-red-500 text-lg px-1">×</button>
-                    `;
-                    list.appendChild(row);
-                });
-            } else addPersonRow();
-        }
+<!-- confirm modal -->
+<div id="confirmOverlay">
+  <div class="confirm-box">
+    <h3 id="confirmTitle">ยืนยันการลบ</h3>
+    <p id="confirmMsg">ต้องการลบโครงการนี้ใช่หรือไม่ การลบไม่สามารถย้อนกลับได้</p>
+    <div class="confirm-actions">
+      <button class="btn-ghost" onclick="closeConfirm()">ยกเลิก</button>
+      <button class="btn-danger" id="confirmBtn">ลบโครงการ</button>
+    </div>
+  </div>
+</div>
 
-        // === แสดงตาราง ===
-        function renderTable() {
-            const tb = document.getElementById('projectTable');
-            const em = document.getElementById('emptyMsg');
-            tb.innerHTML = '';
-            if (projects.length === 0) { em.classList.remove('hidden'); return; }
-            em.classList.add('hidden');
+<div class="toast-container" id="toastContainer"></div>
 
-            projects.forEach((it,i) => {
-                const pl = it.persons?.length 
-                    ? it.persons.map(p => `• ${escapeHtml(p.name)}<br><span class="text-gray-500 text-xs">${escapeHtml(p.position)} / ${escapeHtml(p.role)}</span>`).join('<br>') 
-                    : '-';
+<script>
+const STORAGE_KEY = 'project_2570_data';
+let projects = [];
+const personTemplate = () => {
+  const r = document.createElement('div');
+  r.className = 'person-row';
+  r.innerHTML = `
+    <input type="text" class="person-name" placeholder="ชื่อ-นามสกุล">
+    <input type="text" class="person-position" placeholder="ตำแหน่ง">
+    <select class="person-role">
+      <option value="">-- เลือกประเภท --</option>
+      <option value="ประธานคณะกรรมการ">ประธานคณะกรรมการ</option>
+      <option value="กรรมการ">กรรมการ</option>
+      <option value="ผู้ควบคุมงาน">ผู้ควบคุมงาน</option>
+      <option value="ผู้ช่วยผู้ควบคุมงาน">ผู้ช่วยผู้ควบคุมงาน</option>
+    </select>
+    <button class="rm" onclick="this.parentElement.remove()">×</button>`;
+  return r;
+};
 
-                const stClass = it.status==='เสร็จสิ้น'?'bg-green-100 text-green-800':
-                               it.status==='กำลังดำเนินการ'?'bg-blue-100 text-blue-800':
-                               it.status==='ระงับโครงการ'?'bg-red-100 text-red-800':'bg-gray-100 text-gray-800';
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    document.getElementById('splash').style.opacity = '0';
+    setTimeout(() => {
+      document.getElementById('splash').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      loadData();
+    }, 450);
+  }, 900);
+});
 
-                const r = document.createElement('tr');
-                r.className = 'hover:bg-gray-50 transition-colors';
-                r.innerHTML = `
-                    <td class="p-3 align-top">${i+1}</td>
-                    <td class="p-3 align-top font-medium">${escapeHtml(it.name)}</td>
-                    <td class="p-3 align-top">${escapeHtml(it.source)}<br><span class="text-gray-500 text-xs">ปี ${it.year||'2570'}</span></td>
-                    <td class="p-3 align-top text-sm leading-relaxed">${pl}</td>
-                    <td class="p-3 align-top"><span class="status-badge ${stClass}">${it.status}</span></td>
-                    <td class="p-3 align-top text-center">
-                        <button onclick="editProject(${it.id})" class="text-blue-600 hover:text-blue-800 font-medium mr-2">
-                            <i class="fa fa-pencil"></i> แก้ไข
-                        </button>
-                        <button onclick="del(${it.id})" class="text-red-600 hover:text-red-800 font-medium">
-                            <i class="fa fa-trash"></i> ลบ
-                        </button>
-                    </td>
-                `;
-                tb.appendChild(r);
-            });
-        }
+function addPersonRow(){ document.getElementById('personList').appendChild(personTemplate()); }
 
-        function del(id) {
-            if(confirm('ยืนยันการลบข้อมูลโครงการนี้ใช่ไหม?')) { 
-                projects = projects.filter(x=>x.id!==id); 
-                saveToStorage(); renderTable(); 
-            }
-        }
+function openForm(){
+  document.getElementById('formTitle').textContent = 'เพิ่มโครงการใหม่';
+  document.getElementById('editId').value = '';
+  document.getElementById('projName').value = '';
+  document.getElementById('projSource').value = '';
+  document.getElementById('projYear').value = '2570';
+  document.getElementById('projStatus').value = 'รอดำเนินการ';
+  document.getElementById('projContractor').value = '';
+  document.getElementById('projBudget').value = '';
+  document.getElementById('projDisbursed').value = '';
+  document.getElementById('projProgress').value = 0;
+  document.getElementById('progressVal').textContent = '0%';
+  document.getElementById('projDetail').value = '';
+  const list = document.getElementById('personList');
+  list.innerHTML = '';
+  list.appendChild(personTemplate());
+  document.getElementById('formOverlay').classList.add('show');
+}
+function closeForm(){ document.getElementById('formOverlay').classList.remove('show'); }
 
-        // === สำรอง/นำเข้า ===
-        function exportData() {
-            if (projects.length === 0) { alert('ไม่มีข้อมูลให้บันทึก'); return; }
-            const dataStr = JSON.stringify(projects, null, 2);
-            const blob = new Blob([dataStr], {type: 'application/json;charset=utf-8'});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `โครงการก่อสร้าง_ปี2570_${new Date().toLocaleDateString('th-TH')}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-        function importDataPrompt() { document.getElementById('importFile').click(); }
-        document.getElementById('importFile').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                try {
-                    const imported = JSON.parse(event.target.result);
-                    if(confirm(`พบข้อมูล ${imported.length} รายการ ต้องการรวมเข้ากับข้อมูลเดิมหรือไม่? (กด ยกเลิก จะแทนที่ทั้งหมด)`)) {
-                        projects = [...projects, ...imported];
-                    } else {
-                        projects = imported;
-                    }
-                    saveToStorage(); renderTable();
-                    alert('✅ นำเข้าข้อมูลเรียบร้อย');
-                } catch (err) {
-                    alert('❌ ไฟล์ไม่ถูกต้อง หรือไม่ใช่ข้อมูลโครงการ');
-                }
-                this.value = '';
-            };
-            reader.readAsText(file);
-        });
+function saveToStorage(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(projects)); }
+function loadData(){
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if(saved){
+    try{ projects = JSON.parse(saved); }catch(e){ projects = []; }
+  }
+  renderList();
+}
 
-        // === ช่วยป้องกัน XSS ===
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-    </script>
+function saveProject(){
+  const editId = document.getElementById('editId').value;
+  const n = document.getElementById('projName').value.trim();
+  const source = document.getElementById('projSource').value.trim();
+  const year = document.getElementById('projYear').value.trim() || '2570';
+  const status = document.getElementById('projStatus').value;
+  const contractor = document.getElementById('projContractor').value.trim();
+  const budget = parseFloat(document.getElementById('projBudget').value) || 0;
+  const disbursed = parseFloat(document.getElementById('projDisbursed').value) || 0;
+  const progress = parseInt(document.getElementById('projProgress').value) || 0;
+  const detail = document.getElementById('projDetail').value.trim();
+
+  if(!n || !source){ showToast('กรอกชื่อโครงการและแหล่งงบประมาณให้ครบถ้วน', 'err'); return; }
+
+  const persons = [];
+  document.querySelectorAll('#personList .person-row').forEach(r=>{
+    const nm = r.querySelector('.person-name').value.trim();
+    const pos = r.querySelector('.person-position').value.trim();
+    const role = r.querySelector('.person-role').value;
+    if(nm) persons.push({name:nm, position:pos||'-', role:role||'ไม่ระบุ'});
+  });
+
+  const data = {name:n, source, year, status, contractor, budget, disbursed, progress, persons, detail, updatedAt:new Date().toISOString()};
+
+  if(editId){
+    const idx = projects.findIndex(x=>x.id==editId);
+    if(idx!==-1) projects[idx] = {...projects[idx], ...data};
+    showToast('อัปเดตข้อมูลโครงการเรียบร้อย', 'ok');
+  } else {
+    projects.unshift({id:Date.now(), ...data, createdAt:new Date().toISOString()});
+    showToast('บันทึกโครงการเรียบร้อย', 'ok');
+  }
+  saveToStorage(); renderList(); closeForm();
+}
+
+function editProject(id){
+  const p = projects.find(x=>x.id===id);
+  if(!p) return;
+  document.getElementById('formTitle').textContent = 'แก้ไขโครงการ';
+  document.getElementById('editId').value = id;
+  document.getElementById('projName').value = p.name;
+  document.getElementById('projSource').value = p.source;
+  document.getElementById('projYear').value = p.year || '2570';
+  document.getElementById('projStatus').value = p.status;
+  document.getElementById('projContractor').value = p.contractor || '';
+  document.getElementById('projBudget').value = p.budget || '';
+  document.getElementById('projDisbursed').value = p.disbursed || '';
+  document.getElementById('projProgress').value = p.progress || 0;
+  document.getElementById('progressVal').textContent = (p.progress||0)+'%';
+  document.getElementById('projDetail').value = p.detail || '';
+  const list = document.getElementById('personList');
+  list.innerHTML = '';
+  if(p.persons && p.persons.length){
+    p.persons.forEach(pr=>{
+      const row = personTemplate();
+      row.querySelector('.person-name').value = pr.name;
+      row.querySelector('.person-position').value = pr.position;
+      row.querySelector('.person-role').value = pr.role;
+      list.appendChild(row);
+    });
+  } else { list.appendChild(personTemplate()); }
+  document.getElementById('formOverlay').classList.add('show');
+}
+
+let pendingDeleteId = null;
+function askDelete(id){
+  pendingDeleteId = id;
+  document.getElementById('confirmOverlay').classList.add('show');
+  document.getElementById('confirmBtn').onclick = () => {
+    projects = projects.filter(x=>x.id!==pendingDeleteId);
+    saveToStorage(); renderList(); closeConfirm();
+    showToast('ลบโครงการเรียบร้อย', 'ok');
+  };
+}
+function closeConfirm(){
+  document.getElementById('confirmOverlay').classList.remove('show');
+  pendingDeleteId=null; pendingImport=null;
+  resetConfirmDefaults();
+}
+
+function toggleCommittee(id){
+  const el = document.getElementById('committee-'+id);
+  el.classList.toggle('open');
+}
+
+function statusMeta(s){
+  const map = {
+    'รอดำเนินการ': {cls:'badge-pending', icon:'⏳', c:'var(--grey)'},
+    'ระหว่างดำเนินการ': {cls:'badge-progress', icon:'🚧', c:'var(--blueprint)'},
+    'เสร็จสิ้น': {cls:'badge-done', icon:'✅', c:'var(--green)'},
+    'บอกเลิกสัญญา': {cls:'badge-cancelled', icon:'✕', c:'var(--red)'}
+  };
+  return map[s] || map['รอดำเนินการ'];
+}
+function fmtMoney(n){ return (n||0).toLocaleString('th-TH', {maximumFractionDigits:0}); }
+
+function renderStats(){
+  const total = projects.length;
+  const inProgress = projects.filter(p=>p.status==='ระหว่างดำเนินการ').length;
+  const done = projects.filter(p=>p.status==='เสร็จสิ้น').length;
+  const totalBudget = projects.reduce((s,p)=>s+(p.budget||0),0);
+  const stats = [
+    {n: total, l:'โครงการทั้งหมด', c:'var(--blueprint)'},
+    {n: inProgress, l:'ระหว่างดำเนินการ', c:'var(--blueprint-light)'},
+    {n: done, l:'เสร็จสิ้นแล้ว', c:'var(--green)'},
+    {n: '฿'+fmtMoney(totalBudget), l:'งบประมาณรวม (บาท)', c:'var(--amber)'}
+  ];
+  document.getElementById('statsRow').innerHTML = stats.map(s=>`
+    <div class="stat-card" style="--stat-c:${s.c}">
+      <div class="num">${s.n}</div>
+      <div class="lbl">${s.l}</div>
+    </div>`).join('');
+}
+
+function renderList(){
+  renderStats();
+  const q = (document.getElementById('searchInput').value||'').trim().toLowerCase();
+  const filterStatus = document.getElementById('filterStatus').value;
+  const sortBy = document.getElementById('sortBy').value;
+
+  let list = projects.filter(p=>{
+    const matchQ = !q || [p.name,p.source,p.contractor].some(v=>(v||'').toLowerCase().includes(q));
+    const matchS = !filterStatus || p.status===filterStatus;
+    return matchQ && matchS;
+  });
+
+  if(sortBy==='name') list.sort((a,b)=>a.name.localeCompare(b.name,'th'));
+  else if(sortBy==='updated') list.sort((a,b)=>new Date(b.updatedAt)-new Date(a.updatedAt));
+  else if(sortBy==='budget') list.sort((a,b)=>(b.budget||0)-(a.budget||0));
+  else if(sortBy==='progress') list.sort((a,b)=>(b.progress||0)-(a.progress||0));
+
+  const container = document.getElementById('projectList');
+  const empty = document.getElementById('emptyState');
+
+  if(projects.length===0){ container.innerHTML=''; empty.classList.remove('hidden'); return; }
+  if(list.length===0){
+    empty.classList.remove('hidden');
+    document.querySelector('#emptyState h3').textContent = 'ไม่พบโครงการที่ตรงกับเงื่อนไข';
+    document.querySelector('#emptyState p').textContent = 'ลองปรับคำค้นหาหรือตัวกรองสถานะ';
+    container.innerHTML = '';
+    return;
+  }
+  empty.classList.add('hidden');
+
+  container.innerHTML = list.map((p,i)=>{
+    const sm = statusMeta(p.status);
+    const disbPct = p.budget ? Math.min(100, Math.round((p.disbursed||0)/p.budget*100)) : 0;
+    const personsHtml = (p.persons&&p.persons.length)
+      ? p.persons.map(pr=>`<div class="person-line"><span>${escapeHtml(pr.name)} <span style="color:var(--steel)">(${escapeHtml(pr.position)})</span></span><span class="role-tag">${escapeHtml(pr.role)}</span></div>`).join('')
+      : '<div class="person-line" style="color:var(--steel)">ยังไม่ระบุคณะกรรมการ</div>';
+
+    return `
+    <div class="project-card">
+      <div class="card-top">
+        <div>
+          <div class="card-idx">โครงการที่ ${String(i+1).padStart(2,'0')} · ปีงบ ${escapeHtml(p.year||'2570')}</div>
+          <div class="card-title">${escapeHtml(p.name)}</div>
+          <div class="card-sub">${escapeHtml(p.source)}${p.contractor?' · ผู้รับเหมา: '+escapeHtml(p.contractor):''}</div>
+        </div>
+        <span class="badge ${sm.cls}">${sm.icon} ${escapeHtml(p.status)}</span>
+      </div>
+
+      <div class="meta-grid">
+        <div class="meta-item"><div class="k">วงเงินงบประมาณ</div><div class="v">฿${fmtMoney(p.budget)}</div></div>
+        <div class="meta-item"><div class="k">เบิกจ่ายแล้ว</div><div class="v">฿${fmtMoney(p.disbursed)} <span style="color:var(--steel);font-weight:400">(${disbPct}%)</span></div></div>
+        <div class="meta-item"><div class="k">คณะกรรมการ</div><div class="v">${(p.persons||[]).length} ท่าน</div></div>
+      </div>
+
+      <div class="progress-row">
+        <div class="pl"><span>ความคืบหน้างานก่อสร้าง</span><span>${p.progress||0}%</span></div>
+        <div class="progress-track"><div class="progress-fill" style="width:${p.progress||0}%"></div></div>
+      </div>
+
+      <div class="committee-toggle" onclick="toggleCommittee(${p.id})">👥 ดูรายชื่อคณะกรรมการตรวจรับพัสดุ</div>
+      <div class="committee-list" id="committee-${p.id}">${personsHtml}</div>
+
+      ${p.detail ? `<div class="detail-text">📍 ${escapeHtml(p.detail)}</div>` : ''}
+
+      <div class="card-actions">
+        <button class="act-btn edit" onclick="editProject(${p.id})">✏️ แก้ไข</button>
+        <button class="act-btn del" onclick="askDelete(${p.id})">🗑 ลบ</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function exportData(){
+  if(projects.length===0){ showToast('ไม่มีข้อมูลให้บันทึก','err'); return; }
+  const dataStr = JSON.stringify(projects, null, 2);
+  const blob = new Blob([dataStr], {type:'application/json;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `โครงการก่อสร้าง_ปี2570_${new Date().toLocaleDateString('th-TH').replace(/\//g,'-')}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('สำรองข้อมูลเรียบร้อย', 'ok');
+}
+document.getElementById('importFile').addEventListener('change', function(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    try{
+      const imported = JSON.parse(ev.target.result);
+      if(!Array.isArray(imported)) throw new Error('invalid');
+      pendingImport = imported;
+      askImportMode();
+    }catch(err){ showToast('ไฟล์ไม่ถูกต้อง หรือไม่ใช่ข้อมูลโครงการ','err'); }
+    this.value='';
+  };
+  reader.readAsText(file);
+});
+let pendingImport = null;
+function askImportMode(){
+  document.getElementById('confirmTitle').textContent = 'นำเข้าข้อมูล';
+  document.getElementById('confirmMsg').textContent = `พบข้อมูล ${pendingImport.length} รายการ ต้องการ "รวม" เข้ากับข้อมูลเดิมหรือไม่? (กดยกเลิกเพื่อไม่นำเข้า)`;
+  const btn = document.getElementById('confirmBtn');
+  btn.textContent = 'รวมข้อมูล';
+  document.getElementById('confirmOverlay').classList.add('show');
+  btn.onclick = () => {
+    projects = [...projects, ...pendingImport];
+    saveToStorage(); renderList(); closeConfirm();
+    showToast('นำเข้าข้อมูลเรียบร้อย','ok');
+    resetConfirmDefaults();
+  };
+}
+function resetConfirmDefaults(){
+  document.getElementById('confirmTitle').textContent = 'ยืนยันการลบ';
+  document.getElementById('confirmMsg').textContent = 'ต้องการลบโครงการนี้ใช่หรือไม่ การลบไม่สามารถย้อนกลับได้';
+  document.getElementById('confirmBtn').textContent = 'ลบโครงการ';
+}
+
+function showToast(msg, type){
+  const t = document.createElement('div');
+  t.className = 'toast' + (type==='err'?' err':type==='ok'?' ok':'');
+  t.textContent = (type==='err'?'⚠ ':type==='ok'?'✓ ':'') + msg;
+  document.getElementById('toastContainer').appendChild(t);
+  setTimeout(()=>{ t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(()=>t.remove(),300); }, 2600);
+}
+
+function escapeHtml(text){
+  const div = document.createElement('div');
+  div.textContent = text==null ? '' : text;
+  return div.innerHTML;
+}
+</script>
 </body>
 </html>
