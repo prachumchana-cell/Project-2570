@@ -788,9 +788,105 @@ document.getElementById('importFile').addEventListener('change', function(e){
   reader.readAsText(file);
 });
 
+    }
+  }
+}
+
 function showImportOptions(){
   document.getElementById('confirmTitle').textContent = 'นำเข้าข้อมูล';
   document.getElementById('confirmMsg').textContent = `พบข้อมูล ${pendingImport.length} รายการ เลือกวิธีนำเข้า:`;
   document.getElementById('confirmActions').innerHTML = `
     <button class="btn-merge" onclick="mergeImport()">🔄 รวมข้อมูล (เพิ่มเข้าไป)</button>
-    <button class="btn-danger" onclick
+    <button class="btn-danger" onclick="replaceImport()">⚠️ แทนที่ทั้งหมด (ลบของเดิมก่อน)</button>
+    <button class="btn-ghost" onclick="closeConfirm()">ยกเลิก</button>
+  `;
+  document.getElementById('confirmOverlay').classList.add('show');
+}
+
+async function mergeImport(){
+  try {
+    if (USE_SUPABASE) {
+      const mapped = pendingImport.map(p => ({
+        name: p.name,
+        source: p.source,
+        year: p.year || '2570',
+        status: p.status || 'รอดำเนินการ',
+        contractor: p.contractor,
+        budget: p.budget || 0,
+        disbursed: p.disbursed || 0,
+        progress: p.progress || 0,
+        persons: p.persons || [],
+        detail: p.detail
+      }));
+      const { error } = await supabase.from(TABLE_NAME).insert(mapped);
+      if (error) throw error;
+      await loadData();
+    } else {
+      let maxId = projects.length>0 ? Math.max(...projects.map(x=>x.id)) : 0;
+      const imported = pendingImport.map(p=>({
+        ...p,
+        id: ++maxId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }));
+      projects = [...projects, ...imported];
+      saveToStorage(); renderList();
+    }
+    closeConfirm();
+    showToast(`รวมข้อมูลสำเร็จ +${pendingImport.length} รายการ`, 'ok');
+  } catch (err) {
+    showToast('ผิดพลาด: ' + err.message, 'err');
+  }
+}
+
+async function replaceImport(){
+  try {
+    if (USE_SUPABASE) {
+      const mapped = pendingImport.map(p => ({
+        name: p.name,
+        source: p.source,
+        year: p.year || '2570',
+        status: p.status || 'รอดำเนินการ',
+        contractor: p.contractor,
+        budget: p.budget || 0,
+        disbursed: p.disbursed || 0,
+        progress: p.progress || 0,
+        persons: p.persons || [],
+        detail: p.detail
+      }));
+      const { error } = await supabase.from(TABLE_NAME).delete().neq('id', 0);
+      if (error) throw error;
+      const { error: insErr } = await supabase.from(TABLE_NAME).insert(mapped);
+      if (insErr) throw insErr;
+      await loadData();
+    } else {
+      projects = pendingImport.map(p=>({
+        ...p,
+        id: p.id || Date.now() + Math.random(),
+        updatedAt: new Date().toISOString()
+      }));
+      saveToStorage(); renderList();
+    }
+    closeConfirm();
+    showToast(`แทนที่ข้อมูลสำเร็จ ${pendingImport.length} รายการ`, 'ok');
+  } catch (err) {
+    showToast('ผิดพลาด: ' + err.message, 'err');
+  }
+}
+
+function showToast(msg, type){
+  const t = document.createElement('div');
+  t.className = 'toast' + (type==='err'?' err':type==='ok'?' ok':'');
+  t.textContent = (type==='err'?'⚠ ':'✓ ')+msg;
+  document.getElementById('toastContainer').appendChild(t);
+  setTimeout(()=>{ t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(()=>t.remove(),300); }, 2600);
+}
+
+function escapeHtml(text){
+  const div = document.createElement('div');
+  div.textContent = text==null ? '' : text;
+  return div.innerHTML;
+}
+</script>
+</body>
+</html>
