@@ -788,10 +788,6 @@ document.getElementById('importFile').addEventListener('change', function(e){
   reader.readAsText(file);
 });
 
-    }
-  }
-}
-
 function showImportOptions(){
   document.getElementById('confirmTitle').textContent = 'นำเข้าข้อมูล';
   document.getElementById('confirmMsg').textContent = `พบข้อมูล ${pendingImport.length} รายการ เลือกวิธีนำเข้า:`;
