@@ -4,17 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="โครงการ 2570">
 <meta name="theme-color" content="#1B4965">
-<link rel="manifest" href="manifest.json">
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-<link rel="apple-touch-icon" href="icon-192.png">
 <title>ระบบจัดการโครงการก่อสร้าง ปีงบประมาณ 2570</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@500;600;700&family=Sarabun:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+
+<!-- Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
 :root{
   --ink:#16232E;
@@ -83,7 +80,6 @@ h1,h2,h3,.display{font-family:'Kanit',sans-serif;}
 .icon-btn:hover{border-color:var(--blueprint-light);background:#fff;}
 .header-actions{display:flex;gap:8px;}
 
-/* stat cards */
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
 .stat-card{
   background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
@@ -94,7 +90,6 @@ h1,h2,h3,.display{font-family:'Kanit',sans-serif;}
 .stat-card .lbl{font-size:.72rem;color:var(--steel);margin-top:2px;}
 @media(max-width:680px){.stats{grid-template-columns:repeat(2,1fr);}}
 
-/* toolbar */
 .toolbar{
   display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;
   background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:10px;
@@ -116,7 +111,6 @@ h1,h2,h3,.display{font-family:'Kanit',sans-serif;}
 }
 .btn-primary:hover{background:var(--blueprint-2);}
 
-/* project cards */
 .project-card{
   background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
   padding:16px;margin-bottom:12px;position:relative;box-shadow:var(--shadow);
@@ -136,8 +130,6 @@ h1,h2,h3,.display{font-family:'Kanit',sans-serif;}
 .badge-progress{background:#DDEBF3;color:var(--blueprint);}
 .badge-done{background:var(--green-bg);color:var(--green);}
 .badge-cancelled{background:var(--red-bg);color:var(--red);}
-.badge-handover{background:#EAE2F6;color:#6B3FA0;}
-.badge-disbursement{background:var(--amber-bg);color:var(--amber);}
 
 .meta-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:10px 0;}
 @media(max-width:680px){.meta-grid{grid-template-columns:1fr 1fr;}}
@@ -175,7 +167,6 @@ h1,h2,h3,.display{font-family:'Kanit',sans-serif;}
 .empty-state h3{font-family:'Kanit',sans-serif;color:var(--blueprint-2);margin:0 0 6px;font-size:1.05rem;}
 .empty-state p{font-size:.85rem;margin:0;}
 
-/* overlay + panel */
 .overlay{
   position:fixed;inset:0;background:rgba(16,26,34,.5);z-index:1000;
   display:flex;justify-content:flex-end;opacity:0;pointer-events:none;transition:opacity .2s;
@@ -223,16 +214,16 @@ h1,h2,h3,.display{font-family:'Kanit',sans-serif;}
 }
 .btn-ghost{background:#fff;border:1px solid var(--line);color:var(--ink);padding:10px 16px;border-radius:8px;font-weight:600;font-size:.86rem;cursor:pointer;}
 
-/* confirm modal */
 #confirmOverlay{position:fixed;inset:0;background:rgba(16,26,34,.5);z-index:1100;display:none;align-items:center;justify-content:center;padding:20px;}
 #confirmOverlay.show{display:flex;}
-.confirm-box{background:#fff;border-radius:12px;padding:22px;max-width:340px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.25);}
-.confirm-box h3{margin:0 0 8px;font-size:1rem;color:var(--ink);}
-.confirm-box p{margin:0 0 18px;font-size:.85rem;color:var(--steel);}
-.confirm-actions{display:flex;justify-content:flex-end;gap:8px;}
-.btn-danger{background:var(--red);color:#fff;border:none;padding:9px 15px;border-radius:7px;font-weight:600;font-size:.85rem;cursor:pointer;}
+.confirm-box{background:#fff;border-radius:12px;padding:22px;max-width:360px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.25);}
+.confirm-box h3{margin:0 0 12px;font-size:1rem;color:var(--ink);}
+.confirm-box p{margin:0 0 18px;font-size:.85rem;color:var(--steel);line-height:1.5;}
+.confirm-actions{display:flex;flex-direction:column;gap:8px;}
+.confirm-actions button{width:100%;}
+.btn-danger{background:var(--red);color:#fff;border:none;padding:10px 15px;border-radius:7px;font-weight:600;font-size:.85rem;cursor:pointer;}
+.btn-merge{background:var(--green);color:#fff;border:none;padding:10px 15px;border-radius:7px;font-weight:600;font-size:.85rem;cursor:pointer;}
 
-/* toast */
 .toast-container{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:1200;display:flex;flex-direction:column;gap:8px;align-items:center;width:100%;padding:0 16px;}
 .toast{
   background:var(--ink);color:#fff;padding:11px 18px;border-radius:8px;font-size:.85rem;
@@ -246,7 +237,6 @@ h1,h2,h3,.display{font-family:'Kanit',sans-serif;}
 .hidden{display:none !important;}
 input[type=file]{display:none;}
 
-/* floating action button */
 .fab{
   position:fixed;right:22px;bottom:22px;z-index:900;
   width:58px;height:58px;border-radius:50%;
@@ -261,13 +251,17 @@ input[type=file]{display:none;}
 @media(max-width:680px){
   .fab{right:16px;bottom:16px;width:54px;height:54px;}
 }
+
+.sync-indicator{font-size:.7rem;opacity:.7;}
+.sync-indicator.connected{color:var(--green);}
+.sync-indicator.local{color:var(--amber);}
 </style>
 </head>
 <body>
 
 <div id="splash">
   <div class="mark">⌗ โครงการก่อสร้าง</div>
-  <div class="sub">ปีงบประมาณ 2570</div>
+  <div class="sub">ปีงบประมาณ 2570 · <span id="syncStatus">กำลังตรวจสอบ...</span></div>
   <div class="bar"><span></span></div>
 </div>
 
@@ -299,8 +293,6 @@ input[type=file]{display:none;}
       <option value="">ทุกสถานะ</option>
       <option value="รอดำเนินการ">รอดำเนินการ</option>
       <option value="ระหว่างดำเนินการ">ระหว่างดำเนินการ</option>
-      <option value="รอส่งมอบงาน">รอส่งมอบงาน</option>
-      <option value="รอเบิกจ่าย">รอเบิกจ่าย</option>
       <option value="เสร็จสิ้น">เสร็จสิ้น</option>
       <option value="บอกเลิกสัญญา">บอกเลิกสัญญา</option>
     </select>
@@ -327,7 +319,6 @@ input[type=file]{display:none;}
   </button>
 </div>
 
-<!-- form panel -->
 <div class="overlay" id="formOverlay">
   <div class="panel">
     <div class="panel-head">
@@ -357,8 +348,6 @@ input[type=file]{display:none;}
         <select id="projStatus">
           <option value="รอดำเนินการ">รอดำเนินการ</option>
           <option value="ระหว่างดำเนินการ">ระหว่างดำเนินการ</option>
-          <option value="รอส่งมอบงาน">รอส่งมอบงาน</option>
-          <option value="รอเบิกจ่าย">รอเบิกจ่าย</option>
           <option value="เสร็จสิ้น">เสร็จสิ้น</option>
           <option value="บอกเลิกสัญญา">บอกเลิกสัญญา</option>
         </select>
@@ -404,12 +393,11 @@ input[type=file]{display:none;}
   </div>
 </div>
 
-<!-- confirm modal -->
 <div id="confirmOverlay">
   <div class="confirm-box">
     <h3 id="confirmTitle">ยืนยันการลบ</h3>
     <p id="confirmMsg">ต้องการลบโครงการนี้ใช่หรือไม่ การลบไม่สามารถย้อนกลับได้</p>
-    <div class="confirm-actions">
+    <div class="confirm-actions" id="confirmActions">
       <button class="btn-ghost" onclick="closeConfirm()">ยกเลิก</button>
       <button class="btn-danger" id="confirmBtn">ลบโครงการ</button>
     </div>
@@ -419,8 +407,22 @@ input[type=file]{display:none;}
 <div class="toast-container" id="toastContainer"></div>
 
 <script>
+// ==========================================================
+// ⚙️ ตั้งค่า Supabase — กรอกข้อมูลจากโปรเจกต์ของคุณ
+// ==========================================================
+const SUPABASE_URL = "https://xsitjazwsaprzcwnksyu.supabase.co";       // ← วาง URL ที่นี่ เช่น "https://xxxxxx.supabase.co"
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhzaXRqYXp3c2Fwcnpjd25rc3l1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5NTc1NjMsImV4cCI6MjEwMjUzMzU2M30.XenCi59dbIR1aS0udfCOdu6nxJt6eWzTvoRDsLkZ2A8
+";  // ← วาง Public API Key ที่นี่
+
 const STORAGE_KEY = 'project_2570_data';
+const TABLE_NAME = 'construction_projects';
+
+let supabase = null;
+let USE_SUPABASE = false;
 let projects = [];
+let pendingImport = null;
+let pendingDeleteId = null;
+
 const personTemplate = () => {
   const r = document.createElement('div');
   r.className = 'person-row';
@@ -438,7 +440,8 @@ const personTemplate = () => {
   return r;
 };
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  await initSupabase();
   setTimeout(() => {
     document.getElementById('splash').style.opacity = '0';
     setTimeout(() => {
@@ -448,6 +451,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 450);
   }, 900);
 });
+
+async function initSupabase() {
+  if (SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase) {
+    try {
+      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      const { data, error } = await supabase.from(TABLE_NAME).select('id').limit(1);
+      if (!error) {
+        USE_SUPABASE = true;
+        document.getElementById('syncStatus').innerHTML = '☁️ ซิงค์กับฐานข้อมูล';
+        return;
+      }
+    } catch (e) {
+      console.warn('Supabase เชื่อมต่อไม่ได้ ใช้ LocalStorage แทน:', e.message);
+    }
+  }
+  USE_SUPABASE = false;
+  document.getElementById('syncStatus').innerHTML = '📱 ใช้งานแบบออฟไลน์';
+}
 
 function addPersonRow(){ document.getElementById('personList').appendChild(personTemplate()); }
 
@@ -472,7 +493,38 @@ function openForm(){
 function closeForm(){ document.getElementById('formOverlay').classList.remove('show'); }
 
 function saveToStorage(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(projects)); }
-function loadData(){
+
+async function loadData() {
+  if (USE_SUPABASE) {
+    try {
+      const { data, error } = await supabase
+        .from(TABLE_NAME)
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        projects = data.map(p => ({
+          id: p.id,
+          name: p.name,
+          source: p.source,
+          year: p.year,
+          status: p.status,
+          contractor: p.contractor,
+          budget: p.budget,
+          disbursed: p.disbursed,
+          progress: p.progress,
+          persons: p.persons || [],
+          detail: p.detail,
+          createdAt: p.created_at,
+          updatedAt: p.updated_at
+        }));
+        renderList();
+        return;
+      }
+    } catch (e) {
+      console.warn('โหลดจาก Supabase ล้มเหลว:', e);
+    }
+  }
   const saved = localStorage.getItem(STORAGE_KEY);
   if(saved){
     try{ projects = JSON.parse(saved); }catch(e){ projects = []; }
@@ -480,7 +532,7 @@ function loadData(){
   renderList();
 }
 
-function saveProject(){
+async function saveProject(){
   const editId = document.getElementById('editId').value;
   const n = document.getElementById('projName').value.trim();
   const source = document.getElementById('projSource').value.trim();
@@ -502,17 +554,39 @@ function saveProject(){
     if(nm) persons.push({name:nm, position:pos||'-', role:role||'ไม่ระบุ'});
   });
 
-  const data = {name:n, source, year, status, contractor, budget, disbursed, progress, persons, detail, updatedAt:new Date().toISOString()};
+  const data = {name:n, source, year, status, contractor, budget, disbursed, progress, persons, detail};
 
-  if(editId){
-    const idx = projects.findIndex(x=>x.id==editId);
-    if(idx!==-1) projects[idx] = {...projects[idx], ...data};
-    showToast('อัปเดตข้อมูลโครงการเรียบร้อย', 'ok');
-  } else {
-    projects.unshift({id:Date.now(), ...data, createdAt:new Date().toISOString()});
-    showToast('บันทึกโครงการเรียบร้อย', 'ok');
+  try {
+    if (USE_SUPABASE) {
+      if(editId){
+        const { error } = await supabase
+          .from(TABLE_NAME)
+          .update({...data, updated_at: new Date().toISOString()})
+          .eq('id', editId);
+        if (error) throw error;
+        showToast('อัปเดตข้อมูลโครงการเรียบร้อย', 'ok');
+      } else {
+        const { error } = await supabase.from(TABLE_NAME).insert([data]);
+        if (error) throw error;
+        showToast('บันทึกโครงการเรียบร้อย', 'ok');
+      }
+      await loadData();
+    } else {
+      const localData = {...data, updatedAt: new Date().toISOString()};
+      if(editId){
+        const idx = projects.findIndex(x=>x.id==editId);
+        if(idx!==-1) projects[idx] = {...projects[idx], ...localData};
+        showToast('อัปเดตข้อมูลโครงการเรียบร้อย', 'ok');
+      } else {
+        projects.unshift({id:Date.now(), ...localData, createdAt: new Date().toISOString()});
+        showToast('บันทึกโครงการเรียบร้อย', 'ok');
+      }
+      saveToStorage(); renderList();
+    }
+    closeForm();
+  } catch (err) {
+    showToast('ผิดพลาด: ' + err.message, 'err');
   }
-  saveToStorage(); renderList(); closeForm();
 }
 
 function editProject(id){
@@ -544,33 +618,49 @@ function editProject(id){
   document.getElementById('formOverlay').classList.add('show');
 }
 
-let pendingDeleteId = null;
 function askDelete(id){
   pendingDeleteId = id;
+  document.getElementById('confirmTitle').textContent = 'ยืนยันการลบ';
+  document.getElementById('confirmMsg').textContent = 'ต้องการลบโครงการนี้ใช่หรือไม่ การลบไม่สามารถย้อนกลับได้';
+  document.getElementById('confirmActions').innerHTML = `
+    <button class="btn-ghost" onclick="closeConfirm()">ยกเลิก</button>
+    <button class="btn-danger" onclick="confirmDelete()">ลบโครงการ</button>
+  `;
   document.getElementById('confirmOverlay').classList.add('show');
-  document.getElementById('confirmBtn').onclick = () => {
-    projects = projects.filter(x=>x.id!==pendingDeleteId);
-    saveToStorage(); renderList(); closeConfirm();
-    showToast('ลบโครงการเรียบร้อย', 'ok');
-  };
 }
+
+async function confirmDelete(){
+  try {
+    if (USE_SUPABASE) {
+      const { error } = await supabase.from(TABLE_NAME).delete().eq('id', pendingDeleteId);
+      if (error) throw error;
+      await loadData();
+    } else {
+      projects = projects.filter(x=>x.id!==pendingDeleteId);
+      saveToStorage(); renderList();
+    }
+    showToast('ลบโครงการเรียบร้อย', 'ok');
+  } catch (err) {
+    showToast('ผิดพลาด: ' + err.message, 'err');
+  }
+  closeConfirm();
+}
+
 function closeConfirm(){
   document.getElementById('confirmOverlay').classList.remove('show');
-  pendingDeleteId=null; pendingImport=null;
-  resetConfirmDefaults();
+  pendingDeleteId = null;
+  pendingImport = null;
 }
 
 function toggleCommittee(id){
   const el = document.getElementById('committee-'+id);
-  el.classList.toggle('open');
+  if(el) el.classList.toggle('open');
 }
 
 function statusMeta(s){
   const map = {
     'รอดำเนินการ': {cls:'badge-pending', icon:'⏳', c:'var(--grey)'},
     'ระหว่างดำเนินการ': {cls:'badge-progress', icon:'🚧', c:'var(--blueprint)'},
-    'รอส่งมอบงาน': {cls:'badge-handover', icon:'📦', c:'#6B3FA0'},
-    'รอเบิกจ่าย': {cls:'badge-disbursement', icon:'💰', c:'var(--amber)'},
     'เสร็จสิ้น': {cls:'badge-done', icon:'✅', c:'var(--green)'},
     'บอกเลิกสัญญา': {cls:'badge-cancelled', icon:'✕', c:'var(--red)'}
   };
@@ -609,7 +699,7 @@ function renderList(){
   });
 
   if(sortBy==='name') list.sort((a,b)=>a.name.localeCompare(b.name,'th'));
-  else if(sortBy==='updated') list.sort((a,b)=>new Date(b.updatedAt)-new Date(a.updatedAt));
+  else if(sortBy==='updated') list.sort((a,b)=>new Date(b.updatedAt||b.createdAt)-new Date(a.updatedAt||a.createdAt));
   else if(sortBy==='budget') list.sort((a,b)=>(b.budget||0)-(a.budget||0));
   else if(sortBy==='progress') list.sort((a,b)=>(b.progress||0)-(a.progress||0));
 
@@ -680,61 +770,27 @@ function exportData(){
   URL.revokeObjectURL(url);
   showToast('สำรองข้อมูลเรียบร้อย', 'ok');
 }
+
 document.getElementById('importFile').addEventListener('change', function(e){
   const file = e.target.files[0];
   if(!file) return;
   const reader = new FileReader();
   reader.onload = function(ev){
     try{
-      const imported = JSON.parse(ev.target.result);
-      if(!Array.isArray(imported)) throw new Error('invalid');
-      pendingImport = imported;
-      askImportMode();
-    }catch(err){ showToast('ไฟล์ไม่ถูกต้อง หรือไม่ใช่ข้อมูลโครงการ','err'); }
+      pendingImport = JSON.parse(ev.target.result);
+      if(!Array.isArray(pendingImport)) throw new Error('invalid');
+      showImportOptions();
+    }catch(err){
+      showToast('ไฟล์ไม่ถูกต้อง หรือไม่ใช่ข้อมูลโครงการ','err');
+    }
     this.value='';
   };
   reader.readAsText(file);
 });
-let pendingImport = null;
-function askImportMode(){
+
+function showImportOptions(){
   document.getElementById('confirmTitle').textContent = 'นำเข้าข้อมูล';
-  document.getElementById('confirmMsg').textContent = `พบข้อมูล ${pendingImport.length} รายการ ต้องการ "รวม" เข้ากับข้อมูลเดิมหรือไม่? (กดยกเลิกเพื่อไม่นำเข้า)`;
-  const btn = document.getElementById('confirmBtn');
-  btn.textContent = 'รวมข้อมูล';
-  document.getElementById('confirmOverlay').classList.add('show');
-  btn.onclick = () => {
-    projects = [...projects, ...pendingImport];
-    saveToStorage(); renderList(); closeConfirm();
-    showToast('นำเข้าข้อมูลเรียบร้อย','ok');
-    resetConfirmDefaults();
-  };
-}
-function resetConfirmDefaults(){
-  document.getElementById('confirmTitle').textContent = 'ยืนยันการลบ';
-  document.getElementById('confirmMsg').textContent = 'ต้องการลบโครงการนี้ใช่หรือไม่ การลบไม่สามารถย้อนกลับได้';
-  document.getElementById('confirmBtn').textContent = 'ลบโครงการ';
-}
-
-function showToast(msg, type){
-  const t = document.createElement('div');
-  t.className = 'toast' + (type==='err'?' err':type==='ok'?' ok':'');
-  t.textContent = (type==='err'?'⚠ ':type==='ok'?'✓ ':'') + msg;
-  document.getElementById('toastContainer').appendChild(t);
-  setTimeout(()=>{ t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(()=>t.remove(),300); }, 2600);
-}
-
-function escapeHtml(text){
-  const div = document.createElement('div');
-  div.textContent = text==null ? '' : text;
-  return div.innerHTML;
-}
-
-// ลงทะเบียน Service Worker เพื่อรองรับการใช้งานออฟไลน์ และติดตั้งเป็น PWA
-if('serviceWorker' in navigator){
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW registration failed:', err));
-  });
-}
-</script>
-</body>
-</html>
+  document.getElementById('confirmMsg').textContent = `พบข้อมูล ${pendingImport.length} รายการ เลือกวิธีนำเข้า:`;
+  document.getElementById('confirmActions').innerHTML = `
+    <button class="btn-merge" onclick="mergeImport()">🔄 รวมข้อมูล (เพิ่มเข้าไป)</button>
+    <button class="btn-danger" onclick
