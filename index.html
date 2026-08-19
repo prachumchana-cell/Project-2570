@@ -595,6 +595,7 @@ async function saveProject(){
     showToast('ผิดพลาด: ' + err.message, 'err');
   }
 }
+</script>
 
 function editProject(id){
   const p = projects.find(x=>x.id===id);
@@ -890,6 +891,5 @@ function escapeHtml(text){
   div.textContent = text==null ? '' : text;
   return div.innerHTML;
 }
-</script>
 </body>
 </html>
