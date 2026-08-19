@@ -10,9 +10,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@500;600;700&family=Sarabun:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet" crossorigin="anonymous">
 
-<!-- Supabase SDK -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <style>
 :root{
   --ink:#16232E;
@@ -596,7 +593,6 @@ async function saveProject(){
     showToast('ผิดพลาด: ' + err.message, 'err');
   }
 }
-</script>
 
 function editProject(id){
   const p = projects.find(x=>x.id===id);
@@ -892,5 +888,6 @@ function escapeHtml(text){
   div.textContent = text==null ? '' : text;
   return div.innerHTML;
 }
+</script>
 </body>
 </html>
