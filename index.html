@@ -251,14 +251,14 @@ input[type=file]{display:none;}
 
 .sync-indicator{font-size:.7rem;opacity:.7;}
 .sync-indicator.connected{color:var(--green);}
-.sync-indicator.local{color:var(--amber);}
+.sync-indicator.offline{color:var(--red);font-weight:700;opacity:1;}
 </style>
 </head>
 <body>
 
 <div id="splash">
   <div class="mark">⌗ โครงการก่อสร้าง</div>
-  <div class="sub">ปีงบประมาณ 2570 · <span id="syncStatus">กำลังตรวจสอบ...</span></div>
+  <div class="sub">ปีงบประมาณ 2570</div>
   <div class="bar"><span></span></div>
 </div>
 
@@ -269,7 +269,7 @@ input[type=file]{display:none;}
         <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6M9 12h.01M15 12h.01M9 15.5h.01M15 15.5h.01"/></svg>
       </div>
       <div>
-        <h1>ระบบจัดการโครงการก่อสร้าง</h1>
+        <h1>ระบบจัดการโครงการก่อสร้าง <span id="syncStatus" class="sync-indicator">กำลังตรวจสอบ...</span></h1>
         <div class="yr">ปีงบประมาณ 2570 · แผนงานและคณะกรรมการตรวจรับพัสดุ</div>
       </div>
     </div>
@@ -460,10 +460,11 @@ async function initSupabase() {
         setTimeout(() => reject(new Error('เชื่อมต่อ Supabase หมดเวลา')), 5000)
       );
       const { data, error } = await Promise.race([checkPromise, timeoutPromise]);
-
       if (!error) {
         USE_SUPABASE = true;
-        document.getElementById('syncStatus').innerHTML = '☁️ ซิงค์กับฐานข้อมูล';
+        const el = document.getElementById('syncStatus');
+        el.textContent = '☁️ ซิงค์กับฐานข้อมูล';
+        el.className = 'sync-indicator connected';
         return;
       }
     } catch (e) {
@@ -471,7 +472,9 @@ async function initSupabase() {
     }
   }
   USE_SUPABASE = false;
-  document.getElementById('syncStatus').innerHTML = '📱 ใช้งานแบบออฟไลน์';
+  const el = document.getElementById('syncStatus');
+  el.textContent = 'Offline';
+  el.className = 'sync-indicator offline';
 }
 
 function addPersonRow(){ document.getElementById('personList').appendChild(personTemplate()); }
