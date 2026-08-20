@@ -441,8 +441,10 @@ const personTemplate = () => {
   return r;
 };
 
-document.addEventListener('DOMContentLoaded', async () => {
-  await initSupabase();
+document.addEventListener('DOMContentLoaded', () => {
+  // ✅ ให้หน้า Splash ทำงานและหายไปตามเวลา โดยไม่ต้องรอ Supabase
+  initSupabase(); // เรียกแล้วปล่อย ไม่ต้องรอ — เชื่อมต่อเบื้องหลัง
+
   setTimeout(() => {
     document.getElementById('splash').style.opacity = '0';
     setTimeout(() => {
@@ -454,30 +456,44 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function initSupabase() {
-  if (SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase) {
-    try {
-      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-      // ✅ กันหน้าเว็บค้าง — ถ้าเช็คไม่เสร็จภายใน 5 วิ ให้ถือว่าเชื่อมต่อไม่ได้แล้วไปต่อ
-      const checkPromise = supabase.from(TABLE_NAME).select('id').limit(1);
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('เชื่อมต่อ Supabase หมดเวลา')), 5000)
-      );
-      const { data, error } = await Promise.race([checkPromise, timeoutPromise]);
-      if (!error) {
-        USE_SUPABASE = true;
-        const el = document.getElementById('syncStatus');
-        el.textContent = '☁️ ซิงค์กับฐานข้อมูล';
-        el.className = 'sync-indicator connected';
-        return;
-      }
-    } catch (e) {
-      console.warn('Supabase เชื่อมต่อไม่ได้ ใช้ LocalStorage แทน:', e.message);
-    }
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !window.supabase) {
+    console.warn('ขาดข้อมูล Supabase หรือ SDK ไม่โหลด — ใช้โหมด Offline');
+    setOfflineStatus();
+    return;
   }
+
+  try {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // ทดสอบเชื่อมต่อ พร้อมหมดเวลา 3 วินาที
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+    const { error } = await supabase
+      .from(TABLE_NAME)
+      .select('id', { count: 'exact', head: true })
+      .abortSignal(controller.signal);
+
+    clearTimeout(timeoutId);
+
+    if (!error) {
+      USE_SUPABASE = true;
+      const el = document.getElementById('syncStatus');
+      el.textContent = '☁️ ซิงค์กับฐานข้อมูล';
+      el.className = 'sync-indicator connected';
+    } else {
+      throw error;
+    }
+  } catch (e) {
+    console.warn('Supabase ไม่พร้อม ใช้โหมด Offline:', e.message);
+    setOfflineStatus();
+  }
+}
+
+function setOfflineStatus() {
   USE_SUPABASE = false;
   const el = document.getElementById('syncStatus');
-  el.textContent = 'Offline';
+  el.textContent = '📴 Offline';
   el.className = 'sync-indicator offline';
 }
 
