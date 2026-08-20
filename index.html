@@ -257,13 +257,12 @@ input[type=file]{display:none;}
 .fab:active{transform:scale(.96);}
 .fab svg{width:24px;height:24px;}
 @media(max-width:680px){
-.fab{right:16px;bottom:16px;width:54px;height:54px;}
+  .fab{right:16px;bottom:16px;width:54px;height:54px;}
 }
 
 .sync-indicator{font-size:.7rem;opacity:.7;}
 .sync-indicator.connected{color:var(--green);}
 .sync-indicator.offline{color:var(--red);font-weight:700;opacity:1;}
-
 </style>
 </head>
 <body>
@@ -281,7 +280,7 @@ input[type=file]{display:none;}
         <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6M9 12h.01M15 12h.01M9 15.5h.01M15 15.5h.01"/></svg>
       </div>
       <div>
-        <h1>ระบบจัดการโครงการก่อสร้าง</h1>
+        <h1>ระบบจัดการโครงการก่อสร้าง <span id="syncStatus" class="sync-indicator">กำลังตรวจสอบ...</span></h1>
         <div class="yr">ปีงบประมาณ 2570 · แผนงานและคณะกรรมการตรวจรับพัสดุ</div>
       </div>
     </div>
@@ -456,12 +455,6 @@ document.addEventListener('DOMContentLoaded', () => {
   setTimeout(() => {
     const splash = document.getElementById('splash');
     const app = document.getElementById('app');
-
-    if (!splash || !app) {
-      console.error('หา element splash/app ไม่เจอ!');
-      return;
-    }
-
     if (!splash || !app) return;
     splash.style.opacity = '0';
     setTimeout(() => {
@@ -473,30 +466,40 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function initSupabase() {
-  if (SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase) {
-    try {
-      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-      // ✅ กันหน้าเว็บค้าง — ถ้าเช็คไม่เสร็จภายใน 5 วิ ให้ถือว่าเชื่อมต่อไม่ได้แล้วไปต่อ
-      const checkPromise = supabase.from(TABLE_NAME).select('id').limit(1);
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('เชื่อมต่อ Supabase หมดเวลา')), 5000)
-      );
-      const { data, error } = await Promise.race([checkPromise, timeoutPromise]);
-
-      if (!error) {
-        USE_SUPABASE = true;
-        document.getElementById('syncStatus').innerHTML = '☁️ ซิงค์กับฐานข้อมูล';
-        return;
-      }
-    } catch (e) {
-      console.warn('Supabase เชื่อมต่อไม่ได้ ใช้ LocalStorage แทน:', e.message);
-    }
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !window.supabase) {
+    console.warn('ขาดข้อมูล Supabase หรือ SDK ไม่โหลด — ใช้โหมด Offline');
+    setOfflineStatus();
+    return;
   }
-  USE_SUPABASE = false;
-  document.getElementById('syncStatus').innerHTML = '� ใช้งานแบบออฟไลน์';
+  try {
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+    const { error } = await supabaseClient
+      .from(TABLE_NAME)
+      .select('id', { count: 'exact', head: true })
+      .abortSignal(controller.signal);
+    clearTimeout(timeoutId);
+    if (!error) {
+      USE_SUPABASE = true;
+      const el = document.getElementById('syncStatus');
+      el.textContent = '☁️ ซิงค์กับฐานข้อมูล';
+      el.className = 'sync-indicator connected';
+    } else {
+      throw error;
+    }
+  } catch (e) {
+    console.warn('Supabase ไม่พร้อม ใช้โหมด Offline:', e.message);
+    setOfflineStatus();
+  }
 }
 
+function setOfflineStatus() {
+  USE_SUPABASE = false;
+  const el = document.getElementById('syncStatus');
+  el.textContent = '📴 Offline';
+  el.className = 'sync-indicator offline';
+}
 
 function addPersonRow(){ document.getElementById('personList').appendChild(personTemplate()); }
 
@@ -525,11 +528,10 @@ function saveToStorage(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(proje
 async function loadData() {
   if (USE_SUPABASE) {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseClient
         .from(TABLE_NAME)
         .select('*')
         .order('created_at', { ascending: false });
-
       if (!error && data) {
         projects = data.map(p => ({
           id: p.id,
@@ -554,9 +556,7 @@ async function loadData() {
     }
   }
   const saved = localStorage.getItem(STORAGE_KEY);
-  if(saved){
-    try{ projects = JSON.parse(saved); }catch(e){ projects = []; }
-  }
+  if(saved){ try{ projects = JSON.parse(saved); }catch(e){ projects = []; } }
   renderList();
 }
 
@@ -587,14 +587,14 @@ async function saveProject(){
   try {
     if (USE_SUPABASE) {
       if(editId){
-        const { error } = await supabase
+        const { error } = await supabaseClient
           .from(TABLE_NAME)
           .update({...data, updated_at: new Date().toISOString()})
           .eq('id', editId);
         if (error) throw error;
         showToast('อัปเดตข้อมูลโครงการเรียบร้อย', 'ok');
       } else {
-        const { error } = await supabase.from(TABLE_NAME).insert([data]);
+        const { error } = await supabaseClient.from(TABLE_NAME).insert([data]);
         if (error) throw error;
         showToast('บันทึกโครงการเรียบร้อย', 'ok');
       }
@@ -615,6 +615,13 @@ async function saveProject(){
   } catch (err) {
     showToast('ผิดพลาด: ' + err.message, 'err');
   }
+}
+
+function escapeHtml(str){
+  if(!str) return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
 }
 
 function editProject(id){
@@ -660,7 +667,7 @@ function askDelete(id){
 async function confirmDelete(){
   try {
     if (USE_SUPABASE) {
-      const { error } = await supabase.from(TABLE_NAME).delete().eq('id', pendingDeleteId);
+      const { error } = await supabaseClient.from(TABLE_NAME).delete().eq('id', pendingDeleteId);
       if (error) throw error;
       await loadData();
     } else {
@@ -785,7 +792,6 @@ function renderList(){
     </div>`;
   }).join('');
 }
-
 // ==========================================================
 // � ส่งออกข้อมูล
 // ==========================================================
@@ -826,7 +832,7 @@ function showImportOptions(){
   document.getElementById('confirmTitle').textContent = 'นำเข้าข้อมูล';
   document.getElementById('confirmMsg').textContent = `พบข้อมูล ${pendingImport.length} รายการ เลือกวิธีนำเข้า:`;
   document.getElementById('confirmActions').innerHTML = `
-    <button class="btn-merge" onclick="mergeImport()">🔄 รวมข้อมูล (เพิ่มเข้าไป)</button>
+    <button class="btn-merge" onclick="mergeImport()">� รวมข้อมูล (เพิ่มเข้าไป)</button>
     <button class="btn-danger" onclick="replaceImport()">⚠️ แทนที่ทั้งหมด (ลบของเดิมก่อน)</button>
     <button class="btn-ghost" onclick="closeConfirm()">ยกเลิก</button>
   `;
