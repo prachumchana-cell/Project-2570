@@ -426,7 +426,7 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const STORAGE_KEY = 'project_2570_data';
 const TABLE_NAME = 'construction_projects';
 
-let supabase = null;
+let supabaseClient = null;
 let USE_SUPABASE = false;
 let projects = [];
 let pendingImport = null;
@@ -472,10 +472,10 @@ async function initSupabase() {
     return;
   }
   try {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3000);
-    const { error } = await supabase
+    const { error } = await supabaseClient
       .from(TABLE_NAME)
       .select('id', { count: 'exact', head: true })
       .abortSignal(controller.signal);
@@ -528,7 +528,7 @@ function saveToStorage(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(proje
 async function loadData() {
   if (USE_SUPABASE) {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseClient
         .from(TABLE_NAME)
         .select('*')
         .order('created_at', { ascending: false });
@@ -587,14 +587,14 @@ async function saveProject(){
   try {
     if (USE_SUPABASE) {
       if(editId){
-        const { error } = await supabase
+        const { error } = await supabaseClient
           .from(TABLE_NAME)
           .update({...data, updated_at: new Date().toISOString()})
           .eq('id', editId);
         if (error) throw error;
         showToast('อัปเดตข้อมูลโครงการเรียบร้อย', 'ok');
       } else {
-        const { error } = await supabase.from(TABLE_NAME).insert([data]);
+        const { error } = await supabaseClient.from(TABLE_NAME).insert([data]);
         if (error) throw error;
         showToast('บันทึกโครงการเรียบร้อย', 'ok');
       }
@@ -667,7 +667,7 @@ function askDelete(id){
 async function confirmDelete(){
   try {
     if (USE_SUPABASE) {
-      const { error } = await supabase.from(TABLE_NAME).delete().eq('id', pendingDeleteId);
+      const { error } = await supabaseClient.from(TABLE_NAME).delete().eq('id', pendingDeleteId);
       if (error) throw error;
       await loadData();
     } else {
