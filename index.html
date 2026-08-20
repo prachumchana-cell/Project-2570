@@ -263,6 +263,28 @@ input[type=file]{display:none;}
 .sync-indicator{font-size:.7rem;opacity:.7;}
 .sync-indicator.connected{color:var(--green);}
 .sync-indicator.offline{color:var(--red);font-weight:700;opacity:1;}
+
+/* login pin-box */
+.pin-gate{
+  position:fixed;inset:0;background:var(--paper);
+  display:none;align-items:center;justify-content:center;
+  z-index:5000;padding:20px;
+}
+.pin-gate.show{display:flex;}
+.pin-box{
+  background:var(--card);border:1px solid var(--line);border-radius:14px;
+  padding:32px 28px;max-width:360px;width:100%;text-align:center;
+  box-shadow:var(--shadow);
+}
+.pin-box h2{font-size:1.05rem;margin:14px 0 6px;color:var(--blueprint-2);font-family:'Kanit',sans-serif;}
+.pin-box p{font-size:.85rem;color:var(--steel);margin:0 0 18px;}
+.pin-box input{
+  width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:8px;
+  font-family:'Sarabun',sans-serif;font-size:.95rem;margin-bottom:12px;text-align:center;
+  letter-spacing:2px;
+}
+.pin-box input:focus{outline:2px solid var(--blueprint-light);outline-offset:1px;border-color:var(--blueprint-light);}
+.pin-error{color:var(--red);font-size:.8rem;margin-top:10px;}
 </style>
 </head>
 <body>
@@ -273,6 +295,20 @@ input[type=file]{display:none;}
   <div class="bar"><span></span></div>
 </div>
 
+<!-- form login -->
+<div id="pinGate" class="pin-gate">
+  <div class="pin-box">
+    <div class="brand-mark" style="margin:0 auto;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6M9 12h.01M15 12h.01M9 15.5h.01M15 15.5h.01"/></svg>
+    </div>
+    <h2>ระบบจัดการโครงการก่อสร้าง</h2>
+    <p>กรอกรหัสผ่านทีมเพื่อเข้าใช้งาน</p>
+    <input type="password" id="pinInput" placeholder="รหัสผ่าน" autocomplete="off">
+    <button class="btn-primary" onclick="checkPin()" style="width:100%;justify-content:center;">เข้าสู่ระบบ</button>
+    <div id="pinError" class="pin-error hidden">รหัสผ่านไม่ถูกต้อง ลองใหม่อีกครั้ง</div>
+  </div>
+</div>
+
 <div id="app">
   <div class="topbar">
     <div class="brand">
@@ -280,11 +316,12 @@ input[type=file]{display:none;}
         <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6M9 12h.01M15 12h.01M9 15.5h.01M15 15.5h.01"/></svg>
       </div>
       <div>
-        <h1>ระบบจัดการโครงการก่อสร้าง <br><span id="syncStatus" class="sync-indicator">กำลังตรวจสอบ...</span></h1>
+        <h1>ระบบจัดการโครงการก่อสร้าง <span id="syncStatus" class="sync-indicator">กำลังตรวจสอบ...</span></h1>
         <div class="yr">ปีงบประมาณ 2570 · แผนงานและคณะกรรมการตรวจรับพัสดุ</div>
       </div>
     </div>
     <div class="header-actions">
+	  <button class="icon-btn" onclick="lockApp()">🔒 ล็อก</button>
       <button class="icon-btn" onclick="exportData()">⭳ สำรองข้อมูล</button>
       <button class="icon-btn" onclick="document.getElementById('importFile').click()">⭱ นำเข้า</button>
     </div>
@@ -433,7 +470,7 @@ let pendingImport = null;
 let pendingDeleteId = null;
 
 // ==========================================================
-// � เทมเพลตแถวคณะกรรมการ
+//   เทมเพลตแถวคณะกรรมการ
 // ==========================================================
 const personTemplate = () => {
   const r = document.createElement('div');
@@ -453,29 +490,61 @@ const personTemplate = () => {
 };
 
 // ==========================================================
-// � เริ่มทำงาน
+//   เริ่มทำงาน
 // ==========================================================
 document.addEventListener('DOMContentLoaded', () => {
   initSupabase();
 
-  // ตัวจัดการไฟล์นำเข้า
-  document.getElementById('importFile').addEventListener('change', handleImportFile);
+  // ตัวจัดการเข้าสู่ระบบ
+// ⚠️ เปลี่ยนรหัสผ่านนี้เป็นของทีมคุณเองก่อนใช้งานจริง ห้ามใช้ค่า default [0000]
+const TEAM_PIN = '0000';
+const PIN_SESSION_KEY = 'project_2570_unlocked';
 
+document.addEventListener('DOMContentLoaded', async () => {
+  await initSupabase();
   setTimeout(() => {
-    const splash = document.getElementById('splash');
-    const app = document.getElementById('app');
-    if (!splash || !app) return;
-    splash.style.opacity = '0';
+    document.getElementById('splash').style.opacity = '0';
     setTimeout(() => {
-      splash.style.display = 'none';
-      app.style.display = 'block';
-      loadData();
+      document.getElementById('splash').style.display = 'none';
+      if (localStorage.getItem(PIN_SESSION_KEY) === '1') {
+        document.getElementById('app').style.display = 'block';
+        loadData();
+      } else {
+        document.getElementById('pinGate').classList.add('show');
+        document.getElementById('pinInput').focus();
+      }
     }, 450);
   }, 900);
 });
 
+function checkPin(){
+  const val = document.getElementById('pinInput').value;
+  if (val === TEAM_PIN) {
+    localStorage.setItem(PIN_SESSION_KEY, '1');
+    document.getElementById('pinGate').classList.remove('show');
+    document.getElementById('app').style.display = 'block';
+    loadData();
+  } else {
+    document.getElementById('pinError').classList.remove('hidden');
+    document.getElementById('pinInput').value = '';
+    document.getElementById('pinInput').focus();
+  }
+}
+
+document.getElementById('pinInput')?.addEventListener('keydown', e => {
+  if (e.key === 'Enter') checkPin();
+});
+
+function lockApp(){
+  localStorage.removeItem(PIN_SESSION_KEY);
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('pinInput').value = '';
+  document.getElementById('pinError').classList.add('hidden');
+  document.getElementById('pinGate').classList.add('show');
+}
+
 // ==========================================================
-// � เชื่อมต่อ Supabase
+//   เชื่อมต่อ Supabase
 // ==========================================================
 async function initSupabase() {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !window.supabase) {
@@ -514,7 +583,7 @@ function setOfflineStatus() {
 }
 
 // ==========================================================
-// � แสดงข้อความแจ้งผล
+//   แสดงข้อความแจ้งผล
 // ==========================================================
 function showToast(msg, type = '') {
   const c = document.getElementById('toastContainer');
@@ -526,7 +595,7 @@ function showToast(msg, type = '') {
 }
 
 // ==========================================================
-// � เปิด-ปิด ฟอร์ม
+//   เปิด-ปิด ฟอร์ม
 // ==========================================================
 function addPersonRow(){ document.getElementById('personList').appendChild(personTemplate()); }
 
@@ -553,7 +622,7 @@ function closeForm(){ document.getElementById('formOverlay').classList.remove('s
 function saveToStorage(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(projects)); }
 
 // ==========================================================
-// � โหลดข้อมูล
+//   โหลดข้อมูล
 // ==========================================================
 async function loadData() {
   if (USE_SUPABASE) {
@@ -591,7 +660,7 @@ async function loadData() {
 }
 
 // ==========================================================
-// � บันทึกโครงการ (เพิ่ม/แก้ไข)
+//   บันทึกโครงการ (เพิ่ม/แก้ไข)
 // ==========================================================
 async function saveProject(){
   const editId = document.getElementById('editId').value;
@@ -664,7 +733,7 @@ async function saveProject(){
 }
 
 // ==========================================================
-// � ช่วยจัดการข้อความ
+//   ช่วยจัดการข้อความ
 // ==========================================================
 function escapeHtml(str){
   if(!str) return '';
@@ -706,7 +775,7 @@ function editProject(id){
 }
 
 // ==========================================================
-// � ลบโครงการ
+//   ลบโครงการ
 // ==========================================================
 function askDelete(id){
   pendingDeleteId = id;
@@ -743,7 +812,7 @@ function closeConfirm(){
 }
 
 // ==========================================================
-// � แสดง/ซ่อน รายชื่อคณะกรรมการ
+//   แสดง/ซ่อน รายชื่อคณะกรรมการ
 // ==========================================================
 function toggleCommittee(id){
   const el = document.getElementById('committee-'+id);
@@ -751,7 +820,7 @@ function toggleCommittee(id){
 }
 
 // ==========================================================
-// � ช่วยจัดการสถานะและรูปแบบเงิน
+//   ช่วยจัดการสถานะและรูปแบบเงิน
 // ==========================================================
 function statusMeta(s){
   const map = {
@@ -765,7 +834,7 @@ function statusMeta(s){
 function fmtMoney(n){ return (n||0).toLocaleString('th-TH', {maximumFractionDigits:0}); }
 
 // ==========================================================
-// � แสดงแถบสถิติ
+//   แสดงแถบสถิติ
 // ==========================================================
 function renderStats(){
   const total = projects.length;
@@ -786,7 +855,7 @@ function renderStats(){
 }
 
 // ==========================================================
-// � แสดงรายการโครงการ
+//   แสดงรายการโครงการ
 // ==========================================================
 function renderList(){
   renderStats();
@@ -847,21 +916,21 @@ function renderList(){
         <div class="progress-track"><div class="progress-fill" style="width:${p.progress||0}%"></div></div>
       </div>
 
-      <div class="committee-toggle" onclick="toggleCommittee(${p.id})">� ดูรายชื่อคณะกรรมการตรวจรับพัสดุ</div>
+      <div class="committee-toggle" onclick="toggleCommittee(${p.id})"> 👥 ดูรายชื่อคณะกรรมการตรวจรับพัสดุ</div>
       <div class="committee-list" id="committee-${p.id}">${personsHtml}</div>
 
-      ${p.detail ? `<div class="detail-text">� ${escapeHtml(p.detail)}</div>` : ''}
+      ${p.detail ? `<div class="detail-text">  ${escapeHtml(p.detail)}</div>` : ''}
 
       <div class="card-actions">
         <button class="act-btn edit" onclick="editProject(${p.id})">✏️ แก้ไข</button>
-        <button class="act-btn del" onclick="askDelete(${p.id})">� ลบ</button>
+        <button class="act-btn del" onclick="askDelete(${p.id})"> 🗑 ลบ</button>
       </div>
     </div>`;
   }).join('');
 }
 
 // ==========================================================
-// � ส่งออกข้อมูล
+//   ส่งออกข้อมูล
 // ==========================================================
 function exportData(){
   if(projects.length===0){ showToast('ไม่มีข้อมูลให้บันทึก','err'); return; }
@@ -877,7 +946,7 @@ function exportData(){
 }
 
 // ==========================================================
-// � นำเข้าข้อมูล
+//   นำเข้าข้อมูล
 // ==========================================================
 async function handleImportFile(e){
   const file = e.target.files[0];
