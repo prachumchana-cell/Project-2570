@@ -439,17 +439,24 @@ const personTemplate = () => {
     </select>
     <button class="rm" onclick="this.parentElement.remove()">×</button>`;
   return r;
-};
+}
 
 document.addEventListener('DOMContentLoaded', () => {
-  // ✅ ให้หน้า Splash ทำงานและหายไปตามเวลา โดยไม่ต้องรอ Supabase
-  initSupabase(); // เรียกแล้วปล่อย ไม่ต้องรอ — เชื่อมต่อเบื้องหลัง
+  initSupabase();
 
   setTimeout(() => {
-    document.getElementById('splash').style.opacity = '0';
+    const splash = document.getElementById('splash');
+    const app = document.getElementById('app');
+
+    if (!splash || !app) {
+      console.error('หา element splash/app ไม่เจอ!');
+      return;
+    }
+
+    splash.style.opacity = '0';
     setTimeout(() => {
-      document.getElementById('splash').style.display = 'none';
-      document.getElementById('app').style.display = 'block';
+      splash.style.display = 'none';
+      app.style.display = 'block';
       loadData();
     }, 450);
   }, 900);
