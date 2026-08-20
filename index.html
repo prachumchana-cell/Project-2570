@@ -492,15 +492,15 @@ const personTemplate = () => {
 // ==========================================================
 //   เริ่มทำงาน
 // ==========================================================
-document.addEventListener('DOMContentLoaded', () => {
-  initSupabase();
 
   // ตัวจัดการเข้าสู่ระบบ
 // ⚠️ เปลี่ยนรหัสผ่านนี้เป็นของทีมคุณเองก่อนใช้งานจริง ห้ามใช้ค่า default [0000]
+
 const TEAM_PIN = '0000';
 const PIN_SESSION_KEY = 'project_2570_unlocked';
 
 document.addEventListener('DOMContentLoaded', async () => {
+  document.getElementById('importFile').addEventListener('change', handleImportFile);
   await initSupabase();
   setTimeout(() => {
     document.getElementById('splash').style.opacity = '0';
