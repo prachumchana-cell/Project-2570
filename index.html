@@ -411,14 +411,13 @@ input[type=file]{display:none;}
 // ==========================================================
 // ⚙️ ตั้งค่า Supabase — กรอกข้อมูลจากโปรเจกต์ของคุณ
 // ==========================================================
-const SUPABASE_URL = "https://xsitjazwsaprzcwnksyu.supabase.co";       // ← วาง URL ที่นี่ เช่น "https://xxxxxx.supabase.co"
+const SUPABASE_URL = "https://xsitjazwsaprzcwnksyu.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhzaXRqYXp3c2Fwcnpjd25rc3l1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5NTc1NjMsImV4cCI6MjEwMjUzMzU2M30.XenCi59dbIR1aS0udfCOdu6nxJt6eWzTvoRDsLkZ2A8";
-// ← วาง Public API Key ที่นี่
 
 const STORAGE_KEY = 'project_2570_data';
 const TABLE_NAME = 'construction_projects';
 
-let supabase = null;
+let supabaseClient = null;
 let USE_SUPABASE = false;
 let projects = [];
 let pendingImport = null;
@@ -439,7 +438,7 @@ const personTemplate = () => {
     </select>
     <button class="rm" onclick="this.parentElement.remove()">×</button>`;
   return r;
-}
+};
 
 document.addEventListener('DOMContentLoaded', () => {
   initSupabase();
@@ -447,12 +446,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setTimeout(() => {
     const splash = document.getElementById('splash');
     const app = document.getElementById('app');
-
-    if (!splash || !app) {
-      console.error('หา element splash/app ไม่เจอ!');
-      return;
-    }
-
+    if (!splash || !app) return;
     splash.style.opacity = '0';
     setTimeout(() => {
       splash.style.display = 'none';
@@ -468,21 +462,15 @@ async function initSupabase() {
     setOfflineStatus();
     return;
   }
-
   try {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    // ทดสอบเชื่อมต่อ พร้อมหมดเวลา 3 วินาที
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3000);
-
-    const { error } = await supabase
+    const { error } = await supabaseClient
       .from(TABLE_NAME)
       .select('id', { count: 'exact', head: true })
       .abortSignal(controller.signal);
-
     clearTimeout(timeoutId);
-
     if (!error) {
       USE_SUPABASE = true;
       const el = document.getElementById('syncStatus');
@@ -531,11 +519,10 @@ function saveToStorage(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(proje
 async function loadData() {
   if (USE_SUPABASE) {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseClient
         .from(TABLE_NAME)
         .select('*')
         .order('created_at', { ascending: false });
-
       if (!error && data) {
         projects = data.map(p => ({
           id: p.id,
@@ -560,9 +547,7 @@ async function loadData() {
     }
   }
   const saved = localStorage.getItem(STORAGE_KEY);
-  if(saved){
-    try{ projects = JSON.parse(saved); }catch(e){ projects = []; }
-  }
+  if(saved){ try{ projects = JSON.parse(saved); }catch(e){ projects = []; } }
   renderList();
 }
 
@@ -593,14 +578,14 @@ async function saveProject(){
   try {
     if (USE_SUPABASE) {
       if(editId){
-        const { error } = await supabase
+        const { error } = await supabaseClient
           .from(TABLE_NAME)
           .update({...data, updated_at: new Date().toISOString()})
           .eq('id', editId);
         if (error) throw error;
         showToast('อัปเดตข้อมูลโครงการเรียบร้อย', 'ok');
       } else {
-        const { error } = await supabase.from(TABLE_NAME).insert([data]);
+        const { error } = await supabaseClient.from(TABLE_NAME).insert([data]);
         if (error) throw error;
         showToast('บันทึกโครงการเรียบร้อย', 'ok');
       }
@@ -666,7 +651,7 @@ function askDelete(id){
 async function confirmDelete(){
   try {
     if (USE_SUPABASE) {
-      const { error } = await supabase.from(TABLE_NAME).delete().eq('id', pendingDeleteId);
+      const { error } = await supabaseClient.from(TABLE_NAME).delete().eq('id', pendingDeleteId);
       if (error) throw error;
       await loadData();
     } else {
@@ -776,147 +761,4 @@ function renderList(){
 
       <div class="progress-row">
         <div class="pl"><span>ความคืบหน้างานก่อสร้าง</span><span>${p.progress||0}%</span></div>
-        <div class="progress-track"><div class="progress-fill" style="width:${p.progress||0}%"></div></div>
-      </div>
-
-      <div class="committee-toggle" onclick="toggleCommittee(${p.id})">👥 ดูรายชื่อคณะกรรมการตรวจรับพัสดุ</div>
-      <div class="committee-list" id="committee-${p.id}">${personsHtml}</div>
-
-      ${p.detail ? `<div class="detail-text">📍 ${escapeHtml(p.detail)}</div>` : ''}
-
-      <div class="card-actions">
-        <button class="act-btn edit" onclick="editProject(${p.id})">✏️ แก้ไข</button>
-        <button class="act-btn del" onclick="askDelete(${p.id})">🗑 ลบ</button>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function exportData(){
-  if(projects.length===0){ showToast('ไม่มีข้อมูลให้บันทึก','err'); return; }
-  const dataStr = JSON.stringify(projects, null, 2);
-  const blob = new Blob([dataStr], {type:'application/json;charset=utf-8'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `โครงการก่อสร้าง_ปี2570_${new Date().toLocaleDateString('th-TH').replace(/\//g,'-')}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-  showToast('สำรองข้อมูลเรียบร้อย', 'ok');
-}
-
-document.getElementById('importFile').addEventListener('change', function(e){
-  const file = e.target.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = function(ev){
-    try{
-      pendingImport = JSON.parse(ev.target.result);
-      if(!Array.isArray(pendingImport)) throw new Error('invalid');
-      showImportOptions();
-    }catch(err){
-      showToast('ไฟล์ไม่ถูกต้อง หรือไม่ใช่ข้อมูลโครงการ','err');
-    }
-    this.value='';
-  };
-  reader.readAsText(file);
-});
-
-function showImportOptions(){
-  document.getElementById('confirmTitle').textContent = 'นำเข้าข้อมูล';
-  document.getElementById('confirmMsg').textContent = `พบข้อมูล ${pendingImport.length} รายการ เลือกวิธีนำเข้า:`;
-  document.getElementById('confirmActions').innerHTML = `
-    <button class="btn-merge" onclick="mergeImport()">🔄 รวมข้อมูล (เพิ่มเข้าไป)</button>
-    <button class="btn-danger" onclick="replaceImport()">⚠️ แทนที่ทั้งหมด (ลบของเดิมก่อน)</button>
-    <button class="btn-ghost" onclick="closeConfirm()">ยกเลิก</button>
-  `;
-  document.getElementById('confirmOverlay').classList.add('show');
-}
-
-async function mergeImport(){
-  try {
-    if (USE_SUPABASE) {
-      const mapped = pendingImport.map(p => ({
-        name: p.name,
-        source: p.source,
-        year: p.year || '2570',
-        status: p.status || 'รอดำเนินการ',
-        contractor: p.contractor,
-        budget: p.budget || 0,
-        disbursed: p.disbursed || 0,
-        progress: p.progress || 0,
-        persons: p.persons || [],
-        detail: p.detail
-      }));
-      const { error } = await supabase.from(TABLE_NAME).insert(mapped);
-      if (error) throw error;
-      await loadData();
-    } else {
-      let maxId = projects.length>0 ? Math.max(...projects.map(x=>x.id)) : 0;
-      const imported = pendingImport.map(p=>({
-        ...p,
-        id: ++maxId,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }));
-      projects = [...projects, ...imported];
-      saveToStorage(); renderList();
-    }
-    closeConfirm();
-    showToast(`รวมข้อมูลสำเร็จ +${pendingImport.length} รายการ`, 'ok');
-  } catch (err) {
-    showToast('ผิดพลาด: ' + err.message, 'err');
-  }
-}
-
-async function replaceImport(){
-  try {
-    if (USE_SUPABASE) {
-      const mapped = pendingImport.map(p => ({
-        name: p.name,
-        source: p.source,
-        year: p.year || '2570',
-        status: p.status || 'รอดำเนินการ',
-        contractor: p.contractor,
-        budget: p.budget || 0,
-        disbursed: p.disbursed || 0,
-        progress: p.progress || 0,
-        persons: p.persons || [],
-        detail: p.detail
-      }));
-      const { error } = await supabase.from(TABLE_NAME).delete().neq('id', 0);
-      if (error) throw error;
-      const { error: insErr } = await supabase.from(TABLE_NAME).insert(mapped);
-      if (insErr) throw insErr;
-      await loadData();
-    } else {
-      projects = pendingImport.map(p=>({
-        ...p,
-        id: p.id || Date.now() + Math.random(),
-        updatedAt: new Date().toISOString()
-      }));
-      saveToStorage(); renderList();
-    }
-    closeConfirm();
-    showToast(`แทนที่ข้อมูลสำเร็จ ${pendingImport.length} รายการ`, 'ok');
-  } catch (err) {
-    showToast('ผิดพลาด: ' + err.message, 'err');
-  }
-}
-
-function showToast(msg, type){
-  const t = document.createElement('div');
-  t.className = 'toast' + (type==='err'?' err':type==='ok'?' ok':'');
-  t.textContent = (type==='err'?'⚠ ':'✓ ')+msg;
-  document.getElementById('toastContainer').appendChild(t);
-  setTimeout(()=>{ t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(()=>t.remove(),300); }, 2600);
-}
-
-function escapeHtml(text){
-  const div = document.createElement('div');
-  div.textContent = text==null ? '' : text;
-  return div.innerHTML;
-}
-</script>
-</body>
-</html>
+        <div class="progress-track"><div class="progress-fill
