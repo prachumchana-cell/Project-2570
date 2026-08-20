@@ -432,6 +432,9 @@ let projects = [];
 let pendingImport = null;
 let pendingDeleteId = null;
 
+// ==========================================================
+// � เทมเพลตแถวคณะกรรมการ
+// ==========================================================
 const personTemplate = () => {
   const r = document.createElement('div');
   r.className = 'person-row';
@@ -449,8 +452,14 @@ const personTemplate = () => {
   return r;
 };
 
+// ==========================================================
+// � เริ่มทำงาน
+// ==========================================================
 document.addEventListener('DOMContentLoaded', () => {
   initSupabase();
+
+  // ตัวจัดการไฟล์นำเข้า
+  document.getElementById('importFile').addEventListener('change', handleImportFile);
 
   setTimeout(() => {
     const splash = document.getElementById('splash');
@@ -465,6 +474,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }, 900);
 });
 
+// ==========================================================
+// � เชื่อมต่อ Supabase
+// ==========================================================
 async function initSupabase() {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !window.supabase) {
     console.warn('ขาดข้อมูล Supabase หรือ SDK ไม่โหลด — ใช้โหมด Offline');
@@ -501,6 +513,21 @@ function setOfflineStatus() {
   el.className = 'sync-indicator offline';
 }
 
+// ==========================================================
+// � แสดงข้อความแจ้งผล
+// ==========================================================
+function showToast(msg, type = '') {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 250); }, 3000);
+}
+
+// ==========================================================
+// � เปิด-ปิด ฟอร์ม
+// ==========================================================
 function addPersonRow(){ document.getElementById('personList').appendChild(personTemplate()); }
 
 function openForm(){
@@ -525,6 +552,9 @@ function closeForm(){ document.getElementById('formOverlay').classList.remove('s
 
 function saveToStorage(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(projects)); }
 
+// ==========================================================
+// � โหลดข้อมูล
+// ==========================================================
 async function loadData() {
   if (USE_SUPABASE) {
     try {
@@ -560,6 +590,9 @@ async function loadData() {
   renderList();
 }
 
+// ==========================================================
+// � บันทึกโครงการ (เพิ่ม/แก้ไข)
+// ==========================================================
 async function saveProject(){
   const editId = document.getElementById('editId').value;
   const n = document.getElementById('projName').value.trim();
@@ -582,41 +615,57 @@ async function saveProject(){
     if(nm) persons.push({name:nm, position:pos||'-', role:role||'ไม่ระบุ'});
   });
 
-  const data = {name:n, source, year, status, contractor, budget, disbursed, progress, persons, detail, updatedAt:new Date().toISOString()};
+  const data = {
+    name: n,
+    source,
+    year,
+    status,
+    contractor,
+    budget,
+    disbursed,
+    progress,
+    persons,
+    detail,
+    updated_at: new Date().toISOString()
+  };
 
   try {
     if (USE_SUPABASE) {
       if(editId){
         const { error } = await supabaseClient
           .from(TABLE_NAME)
-          .update({...data, updated_at: new Date().toISOString()})
+          .update(data)
           .eq('id', editId);
         if (error) throw error;
-        showToast('อัปเดตข้อมูลโครงการเรียบร้อย', 'ok');
+        showToast('อัปเดตข้อมูลโครงการเรียบร้อย ✅', 'ok');
       } else {
+        data.created_at = new Date().toISOString();
         const { error } = await supabaseClient.from(TABLE_NAME).insert([data]);
         if (error) throw error;
-        showToast('บันทึกโครงการเรียบร้อย', 'ok');
+        showToast('บันทึกโครงการเรียบร้อย ✅', 'ok');
       }
       await loadData();
     } else {
-      const localData = {...data, updatedAt: new Date().toISOString()};
       if(editId){
         const idx = projects.findIndex(x=>x.id==editId);
-        if(idx!==-1) projects[idx] = {...projects[idx], ...localData};
-        showToast('อัปเดตข้อมูลโครงการเรียบร้อย', 'ok');
+        if(idx!==-1) projects[idx] = {...projects[idx], ...data};
+        showToast('อัปเดตข้อมูลโครงการเรียบร้อย ✅', 'ok');
       } else {
-        projects.unshift({id:Date.now(), ...localData, createdAt: new Date().toISOString()});
-        showToast('บันทึกโครงการเรียบร้อย', 'ok');
+        projects.unshift({id:Date.now(), ...data, createdAt: new Date().toISOString()});
+        showToast('บันทึกโครงการเรียบร้อย ✅', 'ok');
       }
       saveToStorage(); renderList();
     }
     closeForm();
   } catch (err) {
     showToast('ผิดพลาด: ' + err.message, 'err');
+    console.error(err);
   }
 }
 
+// ==========================================================
+// � ช่วยจัดการข้อความ
+// ==========================================================
 function escapeHtml(str){
   if(!str) return '';
   const div = document.createElement('div');
@@ -624,6 +673,9 @@ function escapeHtml(str){
   return div.innerHTML;
 }
 
+// ==========================================================
+// ✏️ แก้ไขโครงการ
+// ==========================================================
 function editProject(id){
   const p = projects.find(x=>x.id===id);
   if(!p) return;
@@ -653,6 +705,9 @@ function editProject(id){
   document.getElementById('formOverlay').classList.add('show');
 }
 
+// ==========================================================
+// � ลบโครงการ
+// ==========================================================
 function askDelete(id){
   pendingDeleteId = id;
   document.getElementById('confirmTitle').textContent = 'ยืนยันการลบ';
@@ -674,7 +729,7 @@ async function confirmDelete(){
       projects = projects.filter(x=>x.id!==pendingDeleteId);
       saveToStorage(); renderList();
     }
-    showToast('ลบโครงการเรียบร้อย', 'ok');
+    showToast('ลบโครงการเรียบร้อย ✅', 'ok');
   } catch (err) {
     showToast('ผิดพลาด: ' + err.message, 'err');
   }
@@ -687,11 +742,17 @@ function closeConfirm(){
   pendingImport = null;
 }
 
+// ==========================================================
+// � แสดง/ซ่อน รายชื่อคณะกรรมการ
+// ==========================================================
 function toggleCommittee(id){
   const el = document.getElementById('committee-'+id);
   if(el) el.classList.toggle('open');
 }
 
+// ==========================================================
+// � ช่วยจัดการสถานะและรูปแบบเงิน
+// ==========================================================
 function statusMeta(s){
   const map = {
     'รอดำเนินการ': {cls:'badge-pending', icon:'⏳', c:'var(--grey)'},
@@ -703,6 +764,9 @@ function statusMeta(s){
 }
 function fmtMoney(n){ return (n||0).toLocaleString('th-TH', {maximumFractionDigits:0}); }
 
+// ==========================================================
+// � แสดงแถบสถิติ
+// ==========================================================
 function renderStats(){
   const total = projects.length;
   const inProgress = projects.filter(p=>p.status==='ระหว่างดำเนินการ').length;
@@ -721,6 +785,9 @@ function renderStats(){
     </div>`).join('');
 }
 
+// ==========================================================
+// � แสดงรายการโครงการ
+// ==========================================================
 function renderList(){
   renderStats();
   const q = (document.getElementById('searchInput').value||'').trim().toLowerCase();
@@ -780,18 +847,19 @@ function renderList(){
         <div class="progress-track"><div class="progress-fill" style="width:${p.progress||0}%"></div></div>
       </div>
 
-      <div class="committee-toggle" onclick="toggleCommittee(${p.id})">👥 ดูรายชื่อคณะกรรมการตรวจรับพัสดุ</div>
+      <div class="committee-toggle" onclick="toggleCommittee(${p.id})">� ดูรายชื่อคณะกรรมการตรวจรับพัสดุ</div>
       <div class="committee-list" id="committee-${p.id}">${personsHtml}</div>
 
-      ${p.detail ? `<div class="detail-text">📍 ${escapeHtml(p.detail)}</div>` : ''}
+      ${p.detail ? `<div class="detail-text">� ${escapeHtml(p.detail)}</div>` : ''}
 
       <div class="card-actions">
         <button class="act-btn edit" onclick="editProject(${p.id})">✏️ แก้ไข</button>
-        <button class="act-btn del" onclick="askDelete(${p.id})">🗑 ลบ</button>
+        <button class="act-btn del" onclick="askDelete(${p.id})">� ลบ</button>
       </div>
     </div>`;
   }).join('');
 }
+
 // ==========================================================
 // � ส่งออกข้อมูล
 // ==========================================================
@@ -805,124 +873,58 @@ function exportData(){
   a.download = `โครงการก่อสร้าง_ปี2570_${new Date().toLocaleDateString('th-TH').replace(/\//g,'-')}.json`;
   a.click();
   URL.revokeObjectURL(url);
-  showToast('สำรองข้อมูลเรียบร้อย', 'ok');
+  showToast('สำรองข้อมูลเรียบร้อย ✅', 'ok');
 }
 
 // ==========================================================
-// � นำเข้าข้อมูล — มี 2 แบบ: รวม / แทนที่ เหมือน iHobby
+// � นำเข้าข้อมูล
 // ==========================================================
-document.getElementById('importFile').addEventListener('change', function(e){
+async function handleImportFile(e){
   const file = e.target.files[0];
   if(!file) return;
   const reader = new FileReader();
-  reader.onload = function(ev){
-    try{
-      pendingImport = JSON.parse(ev.target.result);
-      if(!Array.isArray(pendingImport)) throw new Error('invalid');
-      showImportOptions();
-    }catch(err){
-      showToast('ไฟล์ไม่ถูกต้อง หรือไม่ใช่ข้อมูลโครงการ','err');
+  reader.onload = async (ev) => {
+    try {
+      const imported = JSON.parse(ev.target.result);
+      if(!Array.isArray(imported)){
+        showToast('รูปแบบไฟล์ไม่ถูกต้อง ต้องเป็น Array โครงการ', 'err');
+        return;
+      }
+
+      // แปลงรูปแบบข้อมูลให้ตรงกับตาราง
+      const toInsert = imported.map(p => ({
+        name: p.name,
+        source: p.source,
+        year: p.year || '2570',
+        status: p.status || 'รอดำเนินการ',
+        contractor: p.contractor || '',
+        budget: p.budget || 0,
+        disbursed: p.disbursed || 0,
+        progress: p.progress || 0,
+        persons: p.persons || [],
+        detail: p.detail || '',
+        created_at: p.createdAt || new Date().toISOString(),
+        updated_at: p.updatedAt || new Date().toISOString()
+      }));
+
+      if (USE_SUPABASE) {
+        const { error } = await supabaseClient.from(TABLE_NAME).insert(toInsert);
+        if (error) throw error;
+        showToast(`นำเข้าข้อมูลจำนวน ${toInsert.length} รายการเรียบร้อย ✅`, 'ok');
+        await loadData();
+      } else {
+        projects = [...toInsert, ...projects];
+        saveToStorage();
+        renderList();
+        showToast(`นำเข้าข้อมูลจำนวน ${toInsert.length} รายการเรียบร้อย ✅`, 'ok');
+      }
+    } catch (err) {
+      showToast('นำเข้าข้อมูลล้มเหลว: ' + err.message, 'err');
+      console.error(err);
     }
-    this.value='';
   };
-  reader.readAsText(file);
-});
-
-function showImportOptions(){
-  document.getElementById('confirmTitle').textContent = 'นำเข้าข้อมูล';
-  document.getElementById('confirmMsg').textContent = `พบข้อมูล ${pendingImport.length} รายการ เลือกวิธีนำเข้า:`;
-  document.getElementById('confirmActions').innerHTML = `
-    <button class="btn-merge" onclick="mergeImport()">� รวมข้อมูล (เพิ่มเข้าไป)</button>
-    <button class="btn-danger" onclick="replaceImport()">⚠️ แทนที่ทั้งหมด (ลบของเดิมก่อน)</button>
-    <button class="btn-ghost" onclick="closeConfirm()">ยกเลิก</button>
-  `;
-  document.getElementById('confirmOverlay').classList.add('show');
-}
-
-// ✅ รวมข้อมูล
-async function mergeImport(){
-  try {
-    if (USE_SUPABASE) {
-      const mapped = pendingImport.map(p => ({
-        name: p.name,
-        source: p.source,
-        year: p.year || '2570',
-        status: p.status || 'รอดำเนินการ',
-        contractor: p.contractor,
-        budget: p.budget || 0,
-        disbursed: p.disbursed || 0,
-        progress: p.progress || 0,
-        persons: p.persons || [],
-        detail: p.detail
-      }));
-      const { error } = await supabase.from(TABLE_NAME).insert(mapped);
-      if (error) throw error;
-      await loadData();
-    } else {
-      let maxId = projects.length>0 ? Math.max(...projects.map(x=>x.id)) : 0;
-      const imported = pendingImport.map(p=>({
-        ...p,
-        id: ++maxId,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }));
-      projects = [...projects, ...imported];
-      saveToStorage(); renderList();
-    }
-    closeConfirm();
-    showToast(`รวมข้อมูลสำเร็จ +${pendingImport.length} รายการ`, 'ok');
-  } catch (err) {
-    showToast('ผิดพลาด: ' + err.message, 'err');
-  }
-}
-
-async function replaceImport(){
-  try {
-    if (USE_SUPABASE) {
-      const mapped = pendingImport.map(p => ({
-        name: p.name,
-        source: p.source,
-        year: p.year || '2570',
-        status: p.status || 'รอดำเนินการ',
-        contractor: p.contractor,
-        budget: p.budget || 0,
-        disbursed: p.disbursed || 0,
-        progress: p.progress || 0,
-        persons: p.persons || [],
-        detail: p.detail
-      }));
-      const { error } = await supabase.from(TABLE_NAME).delete().neq('id', 0);
-      if (error) throw error;
-      const { error: insErr } = await supabase.from(TABLE_NAME).insert(mapped);
-      if (insErr) throw insErr;
-      await loadData();
-    } else {
-      projects = pendingImport.map(p=>({
-        ...p,
-        id: p.id || Date.now() + Math.random(),
-        updatedAt: new Date().toISOString()
-      }));
-      saveToStorage(); renderList();
-    }
-    closeConfirm();
-    showToast(`แทนที่ข้อมูลสำเร็จ ${pendingImport.length} รายการ`, 'ok');
-  } catch (err) {
-    showToast('ผิดพลาด: ' + err.message, 'err');
-  }
-}
-
-function showToast(msg, type){
-  const t = document.createElement('div');
-  t.className = 'toast' + (type==='err'?' err':type==='ok'?' ok':'');
-  t.textContent = (type==='err'?'⚠ ':type==='ok'?'✓ ':'') + msg;
-  document.getElementById('toastContainer').appendChild(t);
-  setTimeout(()=>{ t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(()=>t.remove(),300); }, 2600);
-}
-
-function escapeHtml(text){
-  const div = document.createElement('div');
-  div.textContent = text==null ? '' : text;
-  return div.innerHTML;
+  reader.readAsText(file, 'UTF-8');
+  e.target.value = ''; // รีเซ็ตให้เลือกไฟล์เดิมได้อีก
 }
 </script>
 </body>
