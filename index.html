@@ -4,7 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="โครงการ 2570">
 <meta name="theme-color" content="#1B4965">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="favicon.ico" type="image/x-icon">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <title>ระบบจัดการโครงการก่อสร้าง ปีงบประมาณ 2570</title>
 
 <!-- Supabase SDK v2 -->
@@ -12,10 +20,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin="anonymous">
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@500;600;700&family=Sarabun:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
-<link rel="icon" href="favicon.ico" type="image/x-icon">
-<link rel="manifest" href="manifest.json">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+
 <style>
 :root{
   --ink:#16232E;
@@ -137,6 +142,8 @@ h1,h2,h3,.display{font-family:'Kanit',sans-serif;}
 .badge-progress{background:#DDEBF3;color:var(--blueprint);}
 .badge-done{background:var(--green-bg);color:var(--green);}
 .badge-cancelled{background:var(--red-bg);color:var(--red);}
+.badge-handover{background:#EAE2F6;color:#6B3FA0;}
+.badge-disbursement{background:var(--amber-bg);color:var(--amber);}
 
 .meta-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:10px 0;}
 @media(max-width:680px){.meta-grid{grid-template-columns:1fr 1fr;}}
@@ -341,6 +348,8 @@ input[type=file]{display:none;}
       <option value="">ทุกสถานะ</option>
       <option value="รอดำเนินการ">รอดำเนินการ</option>
       <option value="ระหว่างดำเนินการ">ระหว่างดำเนินการ</option>
+      <option value="รอส่งมอบงาน">รอส่งมอบงาน</option>
+      <option value="รอเบิกจ่าย">รอเบิกจ่าย</option>
       <option value="เสร็จสิ้น">เสร็จสิ้น</option>
       <option value="บอกเลิกสัญญา">บอกเลิกสัญญา</option>
     </select>
@@ -397,6 +406,8 @@ input[type=file]{display:none;}
         <select id="projStatus">
           <option value="รอดำเนินการ">รอดำเนินการ</option>
           <option value="ระหว่างดำเนินการ">ระหว่างดำเนินการ</option>
+          <option value="รอส่งมอบงาน">รอส่งมอบงาน</option>
+          <option value="รอเบิกจ่าย">รอเบิกจ่าย</option>
           <option value="เสร็จสิ้น">เสร็จสิ้น</option>
           <option value="บอกเลิกสัญญา">บอกเลิกสัญญา</option>
         </select>
@@ -827,8 +838,10 @@ function toggleCommittee(id){
 // ==========================================================
 function statusMeta(s){
   const map = {
-    'รอดำเนินการ': {cls:'badge-pending', icon:'⏳', c:'var(--grey)'},
+'รอดำเนินการ': {cls:'badge-pending', icon:'⏳', c:'var(--grey)'},
     'ระหว่างดำเนินการ': {cls:'badge-progress', icon:'🚧', c:'var(--blueprint)'},
+    'รอส่งมอบงาน': {cls:'badge-handover', icon:'📦', c:'#6B3FA0'},     // ← เพิ่ม
+    'รอเบิกจ่าย': {cls:'badge-disbursement', icon:'💰', c:'var(--amber)'}, // ← เพิ่ม
     'เสร็จสิ้น': {cls:'badge-done', icon:'✅', c:'var(--green)'},
     'บอกเลิกสัญญา': {cls:'badge-cancelled', icon:'✕', c:'var(--red)'}
   };
@@ -999,7 +1012,7 @@ async function handleImportFile(e){
   e.target.value = ''; // รีเซ็ตให้เลือกไฟล์เดิมได้อีก
 }
 
-// ลงทะเบียน Service Worker เพื่อเปิดใช้งาน PWA
+// ลงทะเบียน Service Worker เพื่อรองรับการใช้งานออฟไลน์ และติดตั้งเป็น PWA
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
