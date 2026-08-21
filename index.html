@@ -578,7 +578,7 @@ async function initSupabase() {
     if (!error) {
       USE_SUPABASE = true;
       const el = document.getElementById('syncStatus');
-      el.textContent = '☁️ ซิงค์กับฐานข้อมูล';
+      el.textContent = '☁️ ออนไลน์';
       el.className = 'sync-indicator connected';
     } else {
       throw error;
@@ -592,7 +592,7 @@ async function initSupabase() {
 function setOfflineStatus() {
   USE_SUPABASE = false;
   const el = document.getElementById('syncStatus');
-  el.textContent = '📴 Offline';
+  el.textContent = '📴 ออฟไลน์';
   el.className = 'sync-indicator offline';
 }
 
