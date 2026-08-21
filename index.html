@@ -18,6 +18,9 @@
 <!-- Supabase SDK v2 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
+<!-- SheetJS สำหรับ Export Excel -->
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+
 <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin="anonymous">
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@500;600;700&family=Sarabun:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 
@@ -73,7 +76,7 @@ h1,h2,h3,.display{font-family:'Kanit',sans-serif;}
 .topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:18px;flex-wrap:wrap;}
 .brand{display:flex;align-items:center;gap:12px;}
 .brand-mark{
-  width:44px;height:44px;border-radius:8px;/* background:var(--blueprint); */
+  width:44px;height:44px;border-radius:8px;
   display:flex;align-items:center;justify-content:center;flex-shrink:0;
   position:relative;
 }
@@ -87,7 +90,7 @@ h1,h2,h3,.display{font-family:'Kanit',sans-serif;}
   transition:all .15s;
 }
 .icon-btn:hover{border-color:var(--blueprint-light);background:#fff;}
-.header-actions{display:flex;gap:8px;}
+.header-actions{display:flex;gap:8px;flex-wrap:wrap;}
 
 /* stat cards */
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
@@ -238,7 +241,6 @@ h1,h2,h3,.display{font-family:'Kanit',sans-serif;}
 .confirm-actions{display:flex;flex-direction:column;gap:8px;}
 .confirm-actions button{width:100%;}
 .btn-danger{background:var(--red);color:#fff;border:none;padding:10px 15px;border-radius:7px;font-weight:600;font-size:.85rem;cursor:pointer;}
-.btn-merge{background:var(--green);color:#fff;border:none;padding:10px 15px;border-radius:7px;font-weight:600;font-size:.85rem;cursor:pointer;}
 
 /* toast */
 .toast-container{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:1200;display:flex;flex-direction:column;gap:8px;align-items:center;width:100%;padding:0 16px;}
@@ -295,6 +297,33 @@ input[type=file]{display:none;}
 }
 .pin-box input:focus{outline:2px solid var(--blueprint-light);outline-offset:1px;border-color:var(--blueprint-light);}
 .pin-error{color:var(--red);font-size:.8rem;margin-top:10px;}
+
+/* -----------------------------------------
+   CSS สำหรับรองรับการพิมพ์ / Export PDF
+----------------------------------------- */
+@media print {
+  body {
+    background: #fff !important;
+    padding-bottom: 0 !important;
+    color: #000 !important;
+  }
+  .header-actions, .toolbar, .card-actions, .fab, .toast-container, .committee-toggle, #pinGate, #splash {
+    display: none !important;
+  }
+  .committee-list {
+    display: block !important;
+  }
+  .project-card {
+    page-break-inside: avoid;
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+    margin-bottom: 15px !important;
+  }
+  #app {
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+}
 </style>
 </head>
 <body>
@@ -331,9 +360,11 @@ input[type=file]{display:none;}
       </div>
     </div>
     <div class="header-actions">
-	  <button class="icon-btn" onclick="lockApp()">🔒 ล็อก</button>
-      <button class="icon-btn" onclick="exportData()">⭳ สำรองข้อมูล</button>
+      <button class="icon-btn" onclick="exportToExcel()">📊 ส่งออก Excel</button>
+      <button class="icon-btn" onclick="exportToPDF()">📄 พิมพ์ / PDF</button>
+      <button class="icon-btn" onclick="exportData()">⭳ สำรอง JSON</button>
       <button class="icon-btn" onclick="document.getElementById('importFile').click()">⭱ นำเข้า</button>
+      <button class="icon-btn" onclick="lockApp()">🔒 ล็อก</button>
     </div>
   </div>
 
@@ -469,10 +500,10 @@ input[type=file]{display:none;}
 
 <script>
 // ==========================================================
-// ⚙️ ตั้งค่า Supabase — กรอกข้อมูลจากโปรเจกต์ของคุณ
+// ⚙️ ตั้งค่า Supabase
 // ==========================================================
-const SUPABASE_URL = "https://xsitjazwsaprzcwnksyu.supabase.co";       // ← วาง URL ที่นี่ เช่น "https://xxxxxx.supabase.co"
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhzaXRqYXp3c2Fwcnpjd25rc3l1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5NTc1NjMsImV4cCI6MjEwMjUzMzU2M30.XenCi59dbIR1aS0udfCOdu6nxJt6eWzTvoRDsLkZ2A8";       // ← วาง Public API Key ที่นี่
+const SUPABASE_URL = "https://xsitjazwsaprzcwnksyu.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhzaXRqYXp3c2Fwcnpjd25rc3l1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5NTc1NjMsImV4cCI6MjEwMjUzMzU2M30.XenCi59dbIR1aS0udfCOdu6nxJt6eWzTvoRDsLkZ2A8";
 
 const STORAGE_KEY = 'project_2570_data';
 const TABLE_NAME = 'construction_projects';
@@ -506,10 +537,6 @@ const personTemplate = () => {
 // ==========================================================
 //   เริ่มทำงาน
 // ==========================================================
-
-  // ตัวจัดการเข้าสู่ระบบ
-// ⚠️ เปลี่ยนรหัสผ่านนี้เป็นของทีมคุณเองก่อนใช้งานจริง ห้ามใช้ค่า default [0000]
-
 const TEAM_PIN = '0000';
 const PIN_SESSION_KEY = 'project_2570_unlocked';
 
@@ -746,9 +773,6 @@ async function saveProject(){
   }
 }
 
-// ==========================================================
-//   ช่วยจัดการข้อความ
-// ==========================================================
 function escapeHtml(str){
   if(!str) return '';
   const div = document.createElement('div');
@@ -838,10 +862,10 @@ function toggleCommittee(id){
 // ==========================================================
 function statusMeta(s){
   const map = {
-'รอดำเนินการ': {cls:'badge-pending', icon:'⏳', c:'var(--grey)'},
+    'รอดำเนินการ': {cls:'badge-pending', icon:'⏳', c:'var(--grey)'},
     'ระหว่างดำเนินการ': {cls:'badge-progress', icon:'🚧', c:'var(--blueprint)'},
-    'รอส่งมอบงาน': {cls:'badge-handover', icon:'📦', c:'#6B3FA0'},     // ← เพิ่ม
-    'รอเบิกจ่าย': {cls:'badge-disbursement', icon:'💰', c:'var(--amber)'}, // ← เพิ่ม
+    'รอส่งมอบงาน': {cls:'badge-handover', icon:'📦', c:'#6B3FA0'},
+    'รอเบิกจ่าย': {cls:'badge-disbursement', icon:'💰', c:'var(--amber)'},
     'เสร็จสิ้น': {cls:'badge-done', icon:'✅', c:'var(--green)'},
     'บอกเลิกสัญญา': {cls:'badge-cancelled', icon:'✕', c:'var(--red)'}
   };
@@ -935,7 +959,7 @@ function renderList(){
       <div class="committee-toggle" onclick="toggleCommittee(${p.id})"> 👥 ดูรายชื่อคณะกรรมการตรวจรับพัสดุ</div>
       <div class="committee-list" id="committee-${p.id}">${personsHtml}</div>
 
-      ${p.detail ? `<div class="detail-text">  ${escapeHtml(p.detail)}</div>` : ''}
+      ${p.detail ? `<div class="detail-text">${escapeHtml(p.detail)}</div>` : ''}
 
       <div class="card-actions">
         <button class="act-btn edit" onclick="editProject(${p.id})">✏️ แก้ไข</button>
@@ -946,7 +970,74 @@ function renderList(){
 }
 
 // ==========================================================
-//   ส่งออกข้อมูล
+// 📊 ส่งออก Excel (.xlsx) รองรับภาษาไทย 100%
+// ==========================================================
+function exportToExcel(){
+  if(projects.length === 0){
+    showToast('ไม่มีข้อมูลสำหรับส่งออก Excel', 'err');
+    return;
+  }
+
+  // 1. แปลงข้อมูลโครงการหลักให้อ่านง่าย
+  const rows = projects.map((p, i) => {
+    const committeeStr = (p.persons || []).map(pr => `${pr.role}: ${pr.name} (${pr.position})`).join('\n');
+    return {
+      'ลำดับ': i + 1,
+      'ปีงบประมาณ': p.year || '2570',
+      'ชื่อโครงการ': p.name || '',
+      'แหล่งงบประมาณ': p.source || '',
+      'สถานะ': p.status || '',
+      'ผู้รับเหมา': p.contractor || '',
+      'วงเงินงบประมาณ (บาท)': p.budget || 0,
+      'เบิกจ่ายแล้ว (บาท)': p.disbursed || 0,
+      'ความคืบหน้า (%)': p.progress || 0,
+      'คณะกรรมการตรวจรับพัสดุ': committeeStr,
+      'รายละเอียด / สถานที่ตั้ง': p.detail || ''
+    };
+  });
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+
+  // กำหนดความกว้างคอลัมน์ให้อ่านง่าย
+  ws['!cols'] = [
+    {wch: 8},  // ลำดับ
+    {wch: 12}, // ปีงบ
+    {wch: 38}, // ชื่อโครงการ
+    {wch: 22}, // แหล่งงบ
+    {wch: 16}, // สถานะ
+    {wch: 25}, // ผู้รับเหมา
+    {wch: 18}, // งบประมาณ
+    {wch: 18}, // เบิกจ่าย
+    {wch: 14}, // ความคืบหน้า
+    {wch: 35}, // คณะกรรมการ
+    {wch: 30}  // รายละเอียด
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "โครงการก่อสร้าง");
+
+  const fileName = `รายงานโครงการก่อสร้าง_${new Date().toLocaleDateString('th-TH').replace(/\//g,'-')}.xlsx`;
+  XLSX.writeFile(wb, fileName);
+  showToast('ส่งออก Excel เรียบร้อย ✅', 'ok');
+}
+
+// ==========================================================
+// 📄 ส่งออก PDF / สั่งพิมพ์ (ฟอนต์คมชัด สระไม่เพี้ยน)
+// ==========================================================
+function exportToPDF(){
+  if(projects.length === 0){
+    showToast('ไม่มีข้อมูลสำหรับพิมพ์', 'err');
+    return;
+  }
+  // เปิดรายชื่อคณะกรรมการทั้งหมดก่อนพิมพ์เพื่อให้ติดลงใน PDF
+  document.querySelectorAll('.committee-list').forEach(el => el.classList.add('open'));
+  
+  // เรียกหน้าต่างพิมพ์ของบราวเซอร์เพื่อบันทึกเป็น PDF
+  window.print();
+}
+
+// ==========================================================
+//   ส่งออกข้อมูล JSON (สำรองข้อมูล)
 // ==========================================================
 function exportData(){
   if(projects.length===0){ showToast('ไม่มีข้อมูลให้บันทึก','err'); return; }
@@ -962,7 +1053,7 @@ function exportData(){
 }
 
 // ==========================================================
-//   นำเข้าข้อมูล
+//   นำเข้าข้อมูล JSON
 // ==========================================================
 async function handleImportFile(e){
   const file = e.target.files[0];
@@ -976,7 +1067,6 @@ async function handleImportFile(e){
         return;
       }
 
-      // แปลงรูปแบบข้อมูลให้ตรงกับตาราง
       const toInsert = imported.map(p => ({
         name: p.name,
         source: p.source,
@@ -1009,10 +1099,10 @@ async function handleImportFile(e){
     }
   };
   reader.readAsText(file, 'UTF-8');
-  e.target.value = ''; // รีเซ็ตให้เลือกไฟล์เดิมได้อีก
+  e.target.value = '';
 }
 
-// ลงทะเบียน Service Worker เพื่อรองรับการใช้งานออฟไลน์ และติดตั้งเป็น PWA
+// ลงทะเบียน Service Worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
